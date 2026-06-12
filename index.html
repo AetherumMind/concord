@@ -2525,6 +2525,287 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+
+<style id="OMNIAUTHOR_UPFIS_UNIFIED_CORE_V10_STYLE">
+#upfisBtnV10{
+  position:fixed;right:16px;top:194px;z-index:999999;
+  background:rgba(8,12,28,.9);color:#00e5cc;
+  border:1px solid rgba(0,229,204,.45);border-radius:12px;
+  padding:10px 12px;font-family:monospace;font-size:9px;
+  letter-spacing:.14em;backdrop-filter:blur(12px)
+}
+#upfisPanelV10{
+  position:fixed;left:10px;right:10px;bottom:82px;z-index:999999;
+  max-height:58vh;overflow:auto;display:none;
+  background:rgba(2,4,14,.96);color:#e8e4d9;
+  border:1px solid rgba(0,229,204,.45);border-radius:18px;
+  padding:14px;font-family:monospace;font-size:11px;
+  box-shadow:0 0 44px rgba(0,229,204,.16);backdrop-filter:blur(14px)
+}
+.upTitle{color:#00e5cc;letter-spacing:.22em;margin:12px 0 8px}
+.upCard{border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0}
+.upGold{color:#e8b96a}.upGood{color:#00e5cc}.upWarn{color:#ff6b35}.upDim{color:#8b96b8}
+.upGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.upGrid button{
+  background:rgba(8,12,28,.88);color:#00e5cc;
+  border:1px solid rgba(0,229,204,.35);border-radius:12px;
+  padding:10px 6px;font-family:monospace;font-size:9px;letter-spacing:.12em
+}
+</style>
+
+<script id="OMNIAUTHOR_UPFIS_UNIFIED_CORE_V10">
+(() => {
+  const VERSION="v10";
+  const BELIEFS="omniauthor-belief-ledger-v1";
+  const ARTIFACTS="upfis-artifacts-v10";
+  const CASES="upfis-cases-v10";
+  const EVENTS="upfis-events-v10";
+  const LINKS="upfis-crosscase-links-v10";
+  const INTEL="upfis-system-intelligence-v10";
+
+  function load(k,d=[]){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}}
+  function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+  function id(p){return p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
+  function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+  function now(){return new Date().toISOString()}
+  function pick(a){return a[Math.floor(Math.random()*a.length)]}
+
+  function beliefs(){return load(BELIEFS,[])}
+  function artifacts(){return load(ARTIFACTS,[])}
+  function cases(){return load(CASES,[])}
+  function events(){return load(EVENTS,[])}
+  function links(){return load(LINKS,[])}
+
+  function words(t){return String(t).toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>4)}
+  function relation(a,b){
+    const aw=words(a), bt=String(b||"").toLowerCase();
+    return aw.filter(w=>bt.includes(w)).length;
+  }
+
+  function addArtifact(text,source="manual",kind="observation"){
+    const list=artifacts();
+    const artifact={
+      id:id("artifact"),
+      text,
+      source,
+      kind,
+      created_at:now(),
+      hash:"h_"+btoa(unescape(encodeURIComponent(text))).replace(/[^a-zA-Z0-9]/g,"").slice(0,18),
+      confidence:.62,
+      tags:words(text).slice(0,8),
+      provenance:{origin:"OmniAuthor/UPFIS",source,kind}
+    };
+    list.unshift(artifact);
+    save(ARTIFACTS,list.slice(0,1000));
+    appendEvent("ARTIFACT_ADDED",artifact.id,{text});
+    return artifact;
+  }
+
+  function createCase(title,summary=""){
+    const list=cases();
+    const c={id:id("case"),title,summary,created_at:now(),artifacts:[],beliefs:[],status:"open"};
+    list.unshift(c);
+    save(CASES,list.slice(0,200));
+    appendEvent("CASE_CREATED",c.id,{title});
+    return c;
+  }
+
+  function appendEvent(type,target,metadata={}){
+    const list=events();
+    const e={id:id("event"),type,target,metadata,created_at:now()};
+    list.unshift(e);
+    save(EVENTS,list.slice(0,2000));
+    return e;
+  }
+
+  function connectEvidenceToBeliefs(){
+    const bs=beliefs();
+    const arts=artifacts();
+    let changed=0;
+
+    bs.forEach(b=>{
+      b.evidence=b.evidence||[];
+      arts.forEach(a=>{
+        if(relation(b.text,a.text)>0 && !b.evidence.includes(a.id)){
+          b.evidence.push(a.id);
+          changed++;
+        }
+      });
+      b.evidence_strength=+(Math.min(1,(b.evidence.length*.12)+(b.confidence||.5)*.35)).toFixed(4);
+      b.provenance_chain={
+        belief_id:b.id,
+        evidence:b.evidence,
+        source_layer:"UPFIS",
+        governance_layer:"EpistemicCore",
+        cognitive_layer:"OmniAuthor"
+      };
+    });
+
+    save(BELIEFS,bs);
+    appendEvent("EVIDENCE_LINK_PASS","belief-ledger",{changed});
+    return changed;
+  }
+
+  function crossCaseAnalyze(){
+    const cs=cases();
+    const bs=beliefs();
+    const arts=artifacts();
+    const out=[];
+
+    for(let i=0;i<cs.length;i++){
+      for(let j=i+1;j<cs.length;j++){
+        const a=cs[i], b=cs[j];
+        const textA=[a.title,a.summary,...(a.artifacts||[]).map(x=>arts.find(y=>y.id===x)?.text||""),...(a.beliefs||[]).map(x=>bs.find(y=>y.id===x)?.text||"")].join(" ");
+        const textB=[b.title,b.summary,...(b.artifacts||[]).map(x=>arts.find(y=>y.id===x)?.text||""),...(b.beliefs||[]).map(x=>bs.find(y=>y.id===x)?.text||"")].join(" ");
+        const score=relation(textA,textB);
+        if(score>0) out.push({id:id("link"),case_a:a.id,case_b:b.id,weight:+Math.min(1,score/10).toFixed(3),created_at:now()});
+      }
+    }
+
+    save(LINKS,out.slice(0,500));
+    appendEvent("CROSS_CASE_ANALYSIS","cases",{links:out.length});
+    return out;
+  }
+
+  function systemIntelligence(){
+    const bs=beliefs(), arts=artifacts(), ev=events(), lk=links();
+    const contradictions=bs.reduce((n,b)=>n+(b.contradicts||[]).length,0);
+    const evidence=bs.reduce((n,b)=>n+(b.evidence||[]).length,0);
+    const top=bs.slice().sort((a,b)=>(b.genesis_score||0)-(a.genesis_score||0)).slice(0,5);
+    const intel={
+      version:VERSION,
+      updated_at:now(),
+      counts:{beliefs:bs.length,artifacts:arts.length,cases:cases().length,events:ev.length,cross_case_links:lk.length},
+      pressure:{contradictions,evidence_links:evidence},
+      recommendations:[
+        evidence<bs.length?"Add more evidence artifacts to strengthen provenance.":"Evidence coverage is improving.",
+        contradictions>5?"Run contradiction review on contested beliefs.":"Contradiction pressure is stable.",
+        top.length?"Promote highest Genesis-score beliefs into active theory layer.":"Seed the ledger with stronger propositions."
+      ],
+      top_growth:top.map(b=>({id:b.id,text:b.text,genesis_score:b.genesis_score,status:b.status}))
+    };
+    save(INTEL,intel);
+    return intel;
+  }
+
+  function seedFromCurrentBeliefs(){
+    const bs=beliefs().slice(0,12);
+    bs.forEach(b=>addArtifact(`Observed belief claim: ${b.text}`,"belief-ledger","derived-artifact"));
+    connectEvidenceToBeliefs();
+    return systemIntelligence();
+  }
+
+  function contradictionReport(){
+    const bs=beliefs();
+    return bs.filter(b=>(b.contradicts||[]).length).slice(0,20).map(b=>({
+      id:b.id,
+      text:b.text,
+      contradicts:b.contradicts,
+      evidence:b.evidence||[],
+      status:b.status
+    }));
+  }
+
+  function promoteTheory(){
+    const bs=beliefs();
+    const top=bs.slice().sort((a,b)=>((b.genesis_score||0)+(b.evidence_strength||0))-((a.genesis_score||0)+(a.evidence_strength||0))).slice(0,3);
+    const text="Theory Layer: "+top.map(b=>`[${b.text}]`).join(" + ");
+    if(window.concordV8?.make) window.concordV8.make(text,"upfis-theory",top.map(b=>b.id));
+    else if(window.concordPrime?.create) window.concordPrime.create(text,"upfis-theory",top.map(b=>b.id));
+    appendEvent("THEORY_PROMOTED","belief-ledger",{beliefs:top.map(b=>b.id)});
+    return text;
+  }
+
+  function render(){
+    const p=ensurePanel();
+    const intel=systemIntelligence();
+    const cr=contradictionReport();
+    const bs=beliefs().slice(0,10);
+    const arts=artifacts().slice(0,10);
+
+    p.innerHTML=`
+      <div class="upGrid">
+        <button onclick="upfisV10.seed()">SEED</button>
+        <button onclick="upfisV10.link()">LINK</button>
+        <button onclick="upfisV10.cross()">CROSS</button>
+        <button onclick="upfisV10.theory()">THEORY</button>
+      </div>
+
+      <div class="upTitle">UPFIS · FORENSIC NERVOUS SYSTEM</div>
+      <div class="upCard">
+        <span class="upGood">artifacts ${intel.counts.artifacts}</span>
+        · beliefs ${intel.counts.beliefs}
+        · cases ${intel.counts.cases}
+        · evidence links ${intel.pressure.evidence_links}
+        · contradictions ${intel.pressure.contradictions}
+      </div>
+
+      <div class="upTitle">SYSTEM INTELLIGENCE</div>
+      ${intel.recommendations.map(r=>`<div class="upCard upDim">${esc(r)}</div>`).join("")}
+
+      <div class="upTitle">EVIDENCE-BACKED BELIEFS</div>
+      ${bs.map(b=>`<div class="upCard">
+        <div class="upGold">${esc(b.id)} · ${esc(b.status||"active")}</div>
+        <div>${esc(b.text)}</div>
+        <div class="upDim">evidence ${(b.evidence||[]).length} · strength ${b.evidence_strength||"pending"} · genesis ${b.genesis_score||"pending"}</div>
+      </div>`).join("")}
+
+      <div class="upTitle">ARTIFACT VAULT</div>
+      ${arts.map(a=>`<div class="upCard">
+        <div class="upGood">${esc(a.id)} · ${esc(a.kind)}</div>
+        <div>${esc(a.text)}</div>
+        <div class="upDim">${esc(a.hash)} · ${esc(a.source)}</div>
+      </div>`).join("")}
+
+      <div class="upTitle">CONTRADICTION WATCH</div>
+      ${cr.length?cr.map(c=>`<div class="upCard">
+        <div class="upWarn">${esc(c.id)}</div>
+        <div>${esc(c.text)}</div>
+        <div class="upDim">contradicts ${c.contradicts.length} · evidence ${c.evidence.length}</div>
+      </div>`).join(""):`<div class="upCard upDim">No major contradiction clusters detected.</div>`}
+    `;
+  }
+
+  function ensurePanel(){
+    let p=document.getElementById("upfisPanelV10");
+    if(!p){p=document.createElement("div");p.id="upfisPanelV10";document.body.appendChild(p)}
+    return p;
+  }
+
+  function button(){
+    if(document.getElementById("upfisBtnV10"))return;
+    const b=document.createElement("button");
+    b.id="upfisBtnV10";
+    b.textContent="UPFIS";
+    b.onclick=()=>{render();const p=ensurePanel();p.style.display=p.style.display==="block"?"none":"block"};
+    document.body.appendChild(b);
+  }
+
+  window.upfisV10={
+    version:VERSION,
+    addArtifact,
+    createCase,
+    event:appendEvent,
+    seed:seedFromCurrentBeliefs,
+    link:connectEvidenceToBeliefs,
+    cross:crossCaseAnalyze,
+    intelligence:systemIntelligence,
+    contradictions:contradictionReport,
+    theory:promoteTheory,
+    artifacts,
+    cases,
+    events,
+    links,
+    render
+  };
+
+  button();
+  setInterval(button,1000);
+  setInterval(()=>{connectEvidenceToBeliefs();systemIntelligence();},90000);
+  console.log("OMNIAUTHOR_UPFIS_UNIFIED_CORE_V10 ready");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
