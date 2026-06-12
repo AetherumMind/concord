@@ -2421,6 +2421,110 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+<script id="CONCORD_GENESIS_MULTIPLIER_V9">
+(() => {
+  const BELIEFS = "omniauthor-belief-ledger-v1";
+  const GENESIS = "concord-genesis-parameters-v1";
+
+  const DEFAULTS = {
+    F0: 0.72,
+    lambda: 0.131,
+    reinforcement: 0.18,
+    contradictionPressure: 0.22,
+    lineageWeight: 0.31,
+    noveltyWeight: 0.27,
+    stabilityFloor: 0.42,
+    maxGrowthPerCycle: 3
+  };
+
+  function load(key, def) {
+    try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(def)); }
+    catch { return def; }
+  }
+
+  function save(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function params() {
+    const merged = { ...DEFAULTS, ...load(GENESIS, DEFAULTS) };
+    save(GENESIS, merged);
+    return merged;
+  }
+
+  function beliefs() {
+    const list = load(BELIEFS, []);
+    return Array.isArray(list) ? list : [];
+  }
+
+  function clamp(x, a, b) {
+    return Math.max(a, Math.min(b, x));
+  }
+
+  function ageDays(iso) {
+    const t = iso ? new Date(iso).getTime() : Date.now();
+    if (!Number.isFinite(t)) return 0;
+    return Math.max(0, (Date.now() - t) / 86400000);
+  }
+
+  function genesisScore(b) {
+    const P = params();
+    const g = ageDays(b.created_at);
+
+    const decay = P.F0 * Math.exp(-P.lambda * g);
+    const support = ((b.supports || []).length + (b.related || []).length) * P.lineageWeight;
+    const contradiction = (b.contradicts || []).length * P.contradictionPressure;
+    const wordCount = String(b.text || "").trim().split(/\s+/).filter(Boolean).length;
+    const novelty = wordCount * 0.01 * P.noveltyWeight;
+    const reinforcement = (b.confidence ?? 0.5) * P.reinforcement;
+
+    return clamp(decay + support + novelty + reinforcement - contradiction, P.stabilityFloor, 1.618);
+  }
+
+  function apply() {
+    const list = beliefs();
+    const P = params();
+
+    list.forEach(b => {
+      b.genesis_score = +genesisScore(b).toFixed(4);
+      b.construct_parameter = {
+        decay_lambda: P.lambda,
+        reinforcement: P.reinforcement,
+        lineage_weight: P.lineageWeight,
+        contradiction_pressure: P.contradictionPressure,
+        stability_floor: P.stabilityFloor
+      };
+
+      if (b.genesis_score > 1.1) b.status = "high-growth";
+      else if (b.genesis_score < 0.5) b.status = "weak-signal";
+    });
+
+    save(BELIEFS, list);
+    return list;
+  }
+
+  window.concordGenesis = {
+    version: "v9",
+    apply,
+    score: genesisScore,
+    params,
+    set(next) {
+      save(GENESIS, { ...params(), ...next });
+      return params();
+    },
+    top(limit = 20) {
+      return apply()
+        .slice()
+        .sort((a, b) => (b.genesis_score || 0) - (a.genesis_score || 0))
+        .slice(0, limit);
+    }
+  };
+
+  apply();
+  console.log("CONCORD_GENESIS_MULTIPLIER_V9 ready");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
