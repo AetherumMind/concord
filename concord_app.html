@@ -1,0 +1,34 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Concord</title>
+<style>
+body{margin:0;background:#030309;color:#f0f2fa;font-family:system-ui;min-height:100vh}
+body:before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 50% 25%,#12345a,transparent 35%),radial-gradient(circle at 50% 40%,#e8b96a33,transparent 18%);z-index:-1}
+h1{text-align:center;letter-spacing:.4em;margin:22px 0 2px}.sub{text-align:center;color:#9aa8cc;letter-spacing:.18em;font-size:12px}
+.wrap{display:grid;gap:12px;padding:12px;max-width:1100px;margin:auto}.card{background:#061024dd;border:1px solid #6fa7ff44;border-radius:16px;padding:14px}
+button,select,input,textarea{width:100%;margin:6px 0;padding:11px;border-radius:10px;border:1px solid #8aa7e055;background:#030712;color:#f0f2fa;font:inherit}
+button{color:#ffd98f;border-color:#e8b96a88;text-transform:uppercase;letter-spacing:.12em}
+pre{white-space:pre-wrap;background:#02040caa;padding:10px;border-radius:10px;max-height:320px;overflow:auto;color:#bdd0ff}
+.tabs{display:flex;gap:8px;padding:10px;overflow:auto}.tabs button{min-width:120px}.hide{display:none}
+@media(min-width:800px){.wrap{grid-template-columns:1fr 1fr}.wide{grid-column:1/3}}
+</style></head><body>
+<h1>CONCORD</h1><div class="sub">LOCAL REASONING WORKSPACE</div>
+<div class="tabs"><button onclick="tab('council')">Council</button><button onclick="tab('workspace')">Workspace</button><button onclick="tab('tasks')">Tasks</button><button onclick="tab('ledger')">Ledger</button></div>
+<div class="wrap">
+<section id="council" class="card wide"><h2>Council</h2><textarea id="claim" rows="4">Build Concord into a working local AI operating workspace.</textarea><button onclick="council()">Deliberate</button><pre id="councilOut"></pre></section>
+<section id="workspace" class="card"><h2>Workspace</h2><button onclick="list()">List Files</button><select id="files" size="6" onclick="pick()"></select><input id="fname" placeholder="project_plan.md"><textarea id="fbody" rows="10"></textarea><button onclick="save()">Save File</button><button onclick="read()">Read File</button><button onclick="del()">Delete File</button><pre id="fileOut"></pre></section>
+<section id="tasks" class="card"><h2>Tasks</h2><select id="kind"><option>plan</option><option>status</option><option>tests</option><option>git</option><option>note</option><option>todo</option><option>export</option></select><textarea id="text" rows="8"></textarea><button onclick="task()">Run</button><pre id="taskOut"></pre></section>
+<section id="ledger" class="card wide hide"><h2>Ledger</h2><button onclick="ledger()">Refresh</button><pre id="ledgerOut"></pre></section>
+</div>
+<script>
+let $=id=>document.getElementById(id);
+function tab(x){["council","workspace","tasks","ledger"].forEach(i=>$(i).classList.toggle("hide",i!==x))}
+async function api(kind,text){let r=await fetch("/api/task",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind,text})});return await r.json()}
+async function council(){let j=await api("council",$("claim").value);$("councilOut").textContent=j.output}
+async function task(){let j=await api($("kind").value,$("text").value);$("taskOut").textContent=j.output}
+async function list(){let j=await api("list_files","");$("files").innerHTML=j.output.split("\\n").filter(Boolean).map(x=>`<option>${x}</option>`).join("");$("fileOut").textContent=j.output}
+function pick(){if($("files").value){$("fname").value=$("files").value;read()}}
+async function save(){let j=await api("write_file",$("fname").value+"\\n"+$("fbody").value);$("fileOut").textContent=j.output;list()}
+async function read(){let j=await api("read_file",$("fname").value);$("fbody").value=j.output;$("fileOut").textContent="Loaded."}
+async function del(){let j=await api("delete_file",$("fname").value);$("fileOut").textContent=j.output;list()}
+async function ledger(){let j=await api("ledger","");$("ledgerOut").textContent=j.output}
+list()
+</script></body></html>
