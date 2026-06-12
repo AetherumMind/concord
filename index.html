@@ -851,7 +851,7 @@ function setStatusLine() {
   $("stat2").style.color = storms ? "#ff7060" : PAL.dim;
   $("stat3").textContent = S.beliefs.length + " sealed by you";
   $("modeTag").textContent = S.apiKey === "artifact" ? "council: live" :
-    S.apiKey ? "studio: live" : "studio: live";
+    S.apiKey ? "studio: live" : "council: offline";
 }
 
 /* ── FOCUS / CAPTION ── */
