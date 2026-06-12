@@ -1,1 +1,1201 @@
-404: Not Found
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>OMNIAUTHOR — A Living Map of Thought</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%2341d8ff' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23ffb340'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#030309;overflow:hidden}
+body{-webkit-font-smoothing:antialiased;color:#f0f2fa;font-family:Inter,sans-serif}
+#c{position:fixed;inset:0;touch-action:none}
+.ov{position:fixed;z-index:5}
+.fade{opacity:0;transition:opacity 1.8s ease}
+body.entered .fade{opacity:1}
+.serif{font-family:'Cormorant Garamond',Georgia,serif}
+.mono{font-family:'JetBrains Mono',monospace}
+.up{animation:fadeUp .5s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+#wordmark{top:24px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}
+#wordmark .t{font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:600;letter-spacing:.46em;padding-left:.46em;text-transform:uppercase;text-shadow:0 0 34px rgba(82,184,255,.5)}
+#wordmark .s{font-size:8.5px;font-weight:300;letter-spacing:.34em;color:#5e6a8e;margin-top:5px;text-transform:uppercase;padding-left:.34em}
+#stats{top:26px;left:30px;pointer-events:none;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#5e6a8e;line-height:2.2}
+#topRight{top:26px;right:30px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.pill{background:rgba(6,10,26,.6);backdrop-filter:blur(12px);border:1px solid rgba(140,170,230,.16);border-radius:8px;padding:8px 14px;color:#aab6d4;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;font-family:Inter,sans-serif}
+.pill:hover{border-color:rgba(232,185,106,.5);color:#ffd98f}
+#modeTag{font-family:'JetBrains Mono',monospace;font-size:9px;color:#5e6a8e;letter-spacing:.1em;text-align:right}
+#phaseWrap{top:92px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}
+#phaseText{font-size:10px;font-weight:300;letter-spacing:.3em;text-transform:uppercase;color:#e8b96a}
+#speakWrap{bottom:212px;left:50%;transform:translateX(-50%);width:min(560px,84vw);text-align:center;pointer-events:none}
+#speakName{font-size:9px;letter-spacing:.26em;text-transform:uppercase;margin-bottom:6px}
+#speakLine{font-family:'Cormorant Garamond',Georgia,serif;font-size:16.5px;font-style:italic;color:#aab6d4;line-height:1.5}
+#caption{bottom:212px;left:50%;transform:translateX(-50%);width:min(580px,86vw);text-align:center;pointer-events:none}
+#capRegion{font-size:9px;letter-spacing:.26em;text-transform:uppercase;margin-bottom:6px}
+#capLabel{font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;font-weight:500;color:#f0f2fa;line-height:1.3;margin-bottom:6px}
+#capDetail{font-weight:300;font-size:11.5px;color:#aab6d4;line-height:1.6;margin-bottom:7px}
+#capMeta{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#5e6a8e;margin-bottom:6px}
+#capLineage{font-weight:300;font-size:10px;color:#8a96b8;line-height:1.7;font-style:italic}
+#weatherWrap{top:92px;left:50%;transform:translateX(-50%);pointer-events:none;text-align:center}
+#weatherText{font-family:'Cormorant Garamond',Georgia,serif;font-size:14px;font-style:italic;color:#e8b96a;letter-spacing:.04em;text-shadow:0 0 20px rgba(232,185,106,.4)}
+#firstRun{top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;width:min(480px,84vw)}
+#firstRun .a{font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-weight:500;color:#f0f2fa;line-height:1.4;margin-bottom:12px;text-shadow:0 0 30px rgba(82,184,255,.3)}
+#firstRun .b{font-size:11px;font-weight:300;color:#5e6a8e;letter-spacing:.08em;line-height:1.7}
+#entryWrap{bottom:108px;left:50%;transform:translateX(-50%);width:min(620px,90vw);display:flex;gap:10px;align-items:center;background:rgba(6,10,26,.6);backdrop-filter:blur(14px);border:1px solid rgba(140,170,230,.16);border-radius:12px;padding:4px 6px 4px 18px;box-shadow:0 0 30px rgba(82,184,255,.08)}
+#entry{flex:1;background:none;border:none;outline:none;color:#f0f2fa;font-size:14.5px;padding:12px 0;font-family:'Cormorant Garamond',Georgia,serif}
+#entry::placeholder{color:#3a4260;font-style:italic}
+#goBtn{background:none;border:1px solid rgba(140,170,230,.12);border-radius:8px;padding:10px 18px;color:#2c3450;font-size:10px;letter-spacing:.22em;text-transform:uppercase;cursor:default;transition:all .25s;font-family:Inter,sans-serif}
+#goBtn.ready{background:linear-gradient(135deg,rgba(232,185,106,.2),rgba(232,185,106,.09));border-color:rgba(232,185,106,.47);color:#ffd98f;cursor:pointer}
+#timeWrap{bottom:0;left:0;right:0;padding:10px 14vw 16px;display:flex;flex-direction:column;align-items:center;gap:5px;background:linear-gradient(transparent,rgba(3,3,9,.94))}
+#epochLabel{font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;font-weight:500;color:#e8b96a;letter-spacing:.15em;line-height:1;text-shadow:0 0 24px rgba(232,185,106,.4)}
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;cursor:pointer;width:100%;max-width:560px}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:rgba(140,170,230,.22)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;border-radius:50%;background:#e8b96a;margin-top:-6px;box-shadow:0 0 14px rgba(232,185,106,.9);border:none}
+input[type=range]::-moz-range-track{height:1px;background:rgba(140,170,230,.22)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#e8b96a;box-shadow:0 0 14px rgba(232,185,106,.9);border:none}
+#veil{position:fixed;inset:0;z-index:20;background:#030309;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:1;transition:opacity 2.6s ease}
+body.entered #veil{opacity:0}
+#veil .v{font-family:'Cormorant Garamond',Georgia,serif;font-size:17px;font-style:italic;color:#5e6a8e;letter-spacing:.08em}
+@media (max-width:640px){
+  #stats{display:none}
+  #caption{bottom:212px}
+  #speakWrap{bottom:212px}
+  #wordmark .t{font-size:17px}
+  #wordmark .s{font-size:7.5px}
+  #entryWrap{bottom:96px;width:94vw;padding-left:14px}
+  #entry{font-size:13.5px}
+  #goBtn{padding:9px 12px;font-size:9px}
+  #timeWrap{padding:8px 8vw 12px}
+  #topRight{top:22px;right:14px}
+  .pill{padding:7px 11px;font-size:8.5px}
+  #firstRun .a{font-size:19px}
+}
+@supports(padding:max(0px)){
+  #timeWrap{padding-bottom:max(16px, env(safe-area-inset-bottom))}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<noscript><div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#aab6d4;font-family:serif;font-style:italic">OmniAuthor needs JavaScript enabled.</div></noscript>
+
+<div id="wordmark" class="ov fade">
+  <div class="t">OmniAuthor</div>
+  <div class="s">What humanity currently knows</div>
+</div>
+
+<div id="stats" class="ov fade">
+  <div id="stat1"></div>
+  <div id="stat2"></div>
+  <div id="stat3"></div>
+</div>
+
+<div id="topRight" class="ov fade">
+  <button class="pill" id="seedsBtn">Show exemplars</button>
+  <button class="pill" id="keyBtn">Council key</button>
+  <div id="modeTag"></div>
+</div>
+
+<div id="phaseWrap" class="ov" style="display:none">
+  <div id="phaseText"></div>
+</div>
+
+<div id="weatherWrap" class="ov up" style="display:none">
+  <div id="weatherText"></div>
+</div>
+
+<div id="speakWrap" class="ov up" style="display:none">
+  <div id="speakName"></div>
+  <div id="speakLine"></div>
+</div>
+
+<div id="caption" class="ov up" style="display:none">
+  <div id="capRegion"></div>
+  <div id="capLabel" class="serif"></div>
+  <div id="capDetail"></div>
+  <div id="capMeta" class="mono"></div>
+  <div id="capLineage"></div>
+</div>
+
+<div id="firstRun" class="ov fade" style="display:none">
+  <div class="a">The planet is dark.<br>It is waiting for your first belief.</div>
+  <div class="b">Pose a proposition below. The Council will deliberate it,<br>and the verdict — with its dissent — becomes permanent light.</div>
+</div>
+
+<div id="entryWrap" class="ov fade">
+  <input id="entry" placeholder="Pose a proposition to the world…" autocomplete="off">
+  <button id="goBtn">Deliberate</button>
+</div>
+
+<div id="timeWrap" class="ov fade">
+  <div id="epochLabel">NOW</div>
+  <input type="range" id="epoch" min="2024" max="2026.6" step="0.01" value="2026.6">
+</div>
+
+<div id="veil"><div class="v">Given everything we currently know…</div></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   OMNIAUTHOR — FINAL PROTOTYPE ENGINE + RENDER
+   Fixes implemented:
+   1. Real council reasoning via Anthropic API (keyless in artifacts,
+      key-prompt fallback for Termux/browser), local engine as offline fallback
+   2. Live contradiction detection → storms form between YOUR beliefs
+   3. Evidence lineage — every verdict carries sources + full ancestry
+   4. Weather while away — beliefs drift, storms shift between sessions
+   5. First-run experience — dark planet, your first belief; exemplars optional
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+"use strict";
+
+const PAL = {
+  void:"#030309", gold:"#e8b96a", goldHot:"#ffd98f",
+  white:"#f0f2fa", soft:"#aab6d4", dim:"#5e6a8e", faint:"#2c3450",
+  land:"#ff7a3c", land2:"#e85530", land3:"#ffae5c",
+  cyan:"#41d8ff", pink:"#ff4fa0", purple:"#a86dff",
+  green:"#52e890", red:"#ff4838", amber:"#ffb340", teal:"#4fffd4",
+};
+const CHIPCOLORS = [PAL.cyan, PAL.pink, PAL.purple, PAL.green, PAL.amber, PAL.teal];
+const D2R = Math.PI / 180;
+
+/* ── WORLD ── */
+const WORLD = [
+"                                                ",
+"                  ##          ######            ",
+"   #####  ####   ###      ## ###########        ",
+"  ########### #  ###     ##############         ",
+"  ############    #      ##############         ",
+"   ###########          ################        ",
+"    #########          #################        ",
+"     ########         ####  ###########         ",
+"      ######          ##### ## ### ####         ",
+"       ####           ######  #### ## ##        ",
+"        ## ##         ######   ##   # ##        ",
+"          ####         #####        ####        ",
+"          #####        #####         ###        ",
+"          #####        ####          # ##       ",
+"          ####          ###            ####     ",
+"          ####          ###           ######    ",
+"           ##           ##            ######    ",
+"           ##            #             ###      ",
+"           #                                    ",
+"           #                                    ",
+"                                                ",
+"                                                ",
+"                                                ",
+"                                                ",
+];
+const LAND_DOTS = [], OCEAN_DOTS = [];
+(function(){
+  let seed = 5;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  for (let r = 0; r < 24; r++) for (let c = 0; c < 48; c++) {
+    const lat0 = 90 - (r / 24) * 180, lon0 = (c / 48) * 360 - 180;
+    if (WORLD[r][c] === "#") {
+      for (let sy = 0; sy < 2; sy++) for (let sx = 0; sx < 2; sx++) {
+        const rv = rnd();
+        LAND_DOTS.push({
+          lat: lat0 - (sy + 0.5) * 3.75, lon: lon0 + (sx + 0.5) * 3.75,
+          j: rnd() * Math.PI * 2,
+          c: rv > 0.93 ? CHIPCOLORS[Math.floor(rnd()*6)] :
+             rv > 0.55 ? PAL.land : rv > 0.25 ? PAL.land3 : PAL.land2,
+        });
+      }
+    } else if ((r + c) % 2 === 0 && r > 1 && r < 21) {
+      OCEAN_DOTS.push({ lat: lat0 - 3.75, lon: lon0 + 3.75 });
+    }
+  }
+})();
+
+/* ── REGIONS ── */
+const REGIONS = {
+  na: { name: "North America · Technology", lat: 42,  lon: -100 },
+  eu: { name: "Europe · Philosophy",        lat: 50,  lon: 15 },
+  as: { name: "Asia · Systems",             lat: 35,  lon: 95 },
+  af: { name: "Africa · Discovery",         lat: 5,   lon: 22 },
+  sa: { name: "South America · Narrative",  lat: -18, lon: -60 },
+  oc: { name: "Oceania · Frontier",         lat: -27, lon: 140 },
+};
+const REGION_KW = {
+  na: ["code","system","software","sync","ledger","hash","data","tech","engine","ai","model","compute","network","robot"],
+  eu: ["truth","belief","ethic","mean","mind","conscious","know","epistem","moral","god","faith","free","real","justice"],
+  as: ["market","econom","supply","scale","manufactur","trade","price","industr","growth","money"],
+  af: ["pattern","number","prime","structure","origin","ancient","discover","gematria","cipher","math"],
+  sa: ["story","book","write","character","narrat","fiction","art","music","creat","film"],
+  oc: ["future","unknown","frontier","possible","will","2030","2040","2050","emerge","quantum","space","fusion"],
+};
+function placeByKeyword(text) {
+  const t = text.toLowerCase();
+  let best = "oc", bs = 0;
+  for (const k of Object.keys(REGION_KW)) {
+    const s = REGION_KW[k].reduce((a, w) => a + (t.includes(w) ? 1 : 0), 0);
+    if (s > bs) { bs = s; best = k; }
+  }
+  return best;
+}
+
+/* ── EXEMPLAR BELIEFS (optional) ── */
+function mkSeed(id, lat, lon, color, label, region, detail, conf, born) {
+  return { id, lat, lon, color, label, region, detail, conf, born, seed: true,
+    evidence: [], contradicts: [], revisions: [] };
+}
+const SEEDS = [
+  mkSeed("x_na1", 42, -100, PAL.cyan,  "Belief ledger sovereignty", "North America · Technology",
+    "All state routes through the append-only ledger. Locked invariant.", 0.97, 2025.4),
+  mkSeed("x_na2", 50, -118, PAL.purple,"Distributed sync convergence", "North America · Technology",
+    "Tie-break: evidence → trust → recency → claim_id.", 0.78, 2026.0),
+  mkSeed("x_eu1", 48, 10,   PAL.amber, "Can dissent survive merging?", "Europe · Philosophy",
+    "The Rationale Persistence Clause demands minority survival.", 0.55, 2026.2),
+  mkSeed("x_as1", 35, 105,  PAL.cyan,  "Bayesian forensic engine", "Asia · Systems",
+    "Multi-stream Welford statistics, adaptive thresholds.", 0.93, 2025.2),
+  mkSeed("x_af1", 10, 20,   PAL.amber, "2701 = 37 × 73 = T(73)", "Africa · Discovery",
+    "Triangular-hexagonal structure verified. Meaning contested.", 0.99, 2024.3),
+  mkSeed("x_sa1", -15, -60, PAL.green, "Lean prose discipline", "South America · Narrative",
+    "V1 lean beat V2 expanded. Restraint is the voice.", 0.90, 2025.0),
+  mkSeed("x_oc1", -25, 135, PAL.teal,  "Shared belief space", "Oceania · Frontier",
+    "Independent models converge on isomorphic structures.", 0.30, 2026.4),
+];
+
+/* ── COUNCIL ── */
+const COUNCIL = [
+  { id:"architect",  name:"Architect",  color:"#41d8ff", glyph:"⬡", incl: 0.25, speed: 0.21, phase: 0.0, trust: 0.88 },
+  { id:"skeptic",    name:"Skeptic",    color:"#ff4838", glyph:"⊘", incl:-0.45, speed: 0.16, phase: 1.1, trust: 0.82 },
+  { id:"scientist",  name:"Scientist",  color:"#52e890", glyph:"◬", incl: 0.55, speed: 0.26, phase: 2.2, trust: 0.90 },
+  { id:"historian",  name:"Historian",  color:"#e8b96a", glyph:"◷", incl:-0.15, speed: 0.12, phase: 3.1, trust: 0.85 },
+  { id:"auditor",    name:"Auditor",    color:"#a86dff", glyph:"▣", incl: 0.7,  speed: 0.19, phase: 4.2, trust: 0.87 },
+  { id:"strategist", name:"Strategist", color:"#4fffd4", glyph:"✦", incl:-0.6,  speed: 0.29, phase: 5.3, trust: 0.84 },
+];
+const COUNCIL_BY_ID = Object.fromEntries(COUNCIL.map(m => [m.id, m]));
+
+function hash16(s) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return ((h2 >>> 0).toString(16).padStart(8,"0") + (h1 >>> 0).toString(16).padStart(8,"0")).slice(0, 16);
+}
+
+/* ── INTEGRITY (locked formula) ── */
+function scoreAndResolve(members) {
+  members.forEach(c => {
+    const peers = members.filter(o => o !== c);
+    c.peerAgreement = peers.reduce((s, o) => s + (o.stance === c.stance ? 0.5 : -0.3), 0) / peers.length;
+    const trust = COUNCIL_BY_ID[c.id].trust;
+    c.integrity = c.evidence * trust * 0.80 + c.confidence * trust * 0.15 +
+      ((c.peerAgreement + 1) / 2) * 0.05;
+  });
+  const sorted = [...members].sort((a, b) =>
+    b.integrity - a.integrity || b.evidence - a.evidence ||
+    COUNCIL_BY_ID[b.id].trust - COUNCIL_BY_ID[a.id].trust ||
+    (a.id < b.id ? -1 : 1));
+  const winner = sorted[0];
+  const dissent = members.filter(c => c.stance !== winner.stance);
+  const consensusPct = Math.round(
+    members.reduce((s, c) => s + (c.stance === winner.stance ? c.integrity : 0), 0) /
+    members.reduce((s, c) => s + c.integrity, 0) * 100);
+  return { winner, dissent, consensusPct };
+}
+
+/* ── FALLBACK LOCAL ENGINE (offline) ── */
+function localDeliberate(proposition, existing) {
+  const pHash = hash16(proposition);
+  const members = COUNCIL.map((m, i) => {
+    const b = parseInt(pHash.slice(i*2, i*2+2), 16) / 255;
+    return {
+      id: m.id, stance: b > 0.5 ? "affirms" : "doubts",
+      evidence: Math.min(0.95, Math.max(0.4, 0.5 + b * 0.4)),
+      confidence: Math.min(0.95, Math.max(0.35, 0.45 + (1-b) * 0.4)),
+      argument: b > 0.5
+        ? `${m.name} finds the premise structurally sound`
+        : `${m.name} finds the evidence base insufficient`,
+    };
+  });
+  // naive contradiction: shared 4+ letter words + negation asymmetry
+  const negs = ["not","never","no ","false","won't","wont","isn't","isnt","can't","cant"];
+  const tw = proposition.toLowerCase();
+  const hasNeg = negs.some(n => tw.includes(n));
+  const words = tw.split(/\W+/).filter(w => w.length > 4);
+  const contradicts = [];
+  existing.forEach((b2, idx) => {
+    const t2 = (b2.label + " " + (b2.proposition || "")).toLowerCase();
+    const shared = words.filter(w => t2.includes(w)).length;
+    const negs2 = negs.some(n => t2.includes(n));
+    if (shared >= 2 && hasNeg !== negs2) contradicts.push(idx);
+  });
+  return {
+    members,
+    verdictText: null, // composed after scoring
+    regionKey: placeByKeyword(proposition),
+    evidenceLines: ["Local engine — offline mode. Connect for sourced reasoning."],
+    contradicts,
+    mode: "local",
+  };
+}
+
+/* ── REAL COUNCIL — Anthropic API ── */
+async function apiDeliberate(proposition, existing, apiKey) {
+  const existingList = existing.map((b, i) => `${i}: ${b.label}`).join("\n") || "(none)";
+  const prompt = `You are the OmniAuthor Council: six reasoning perspectives deliberating a proposition. Members: architect (systems/structure), skeptic (doubt/failure modes), scientist (empirical evidence), historian (precedent), auditor (consistency/rules), strategist (pragmatics).
+
+PROPOSITION: "${proposition}"
+
+EXISTING BELIEFS (index: label):
+${existingList}
+
+Genuinely reason about the proposition. Each member independently takes a stance with calibrated numbers. Respond ONLY with JSON, no markdown fences:
+{"members":[{"id":"architect","stance":"affirms"|"doubts","evidence":0.0-1.0,"confidence":0.0-1.0,"argument":"their actual argument, under 18 words"}, ... all six ids],"verdict":"two-sentence synthesis of where the council landed and why","region":"na"|"eu"|"as"|"af"|"sa"|"oc" (na=technology, eu=philosophy/ethics, as=economics/systems, af=mathematics/discovery, sa=narrative/art, oc=future/frontier),"evidenceLines":["three short source-style evidence considerations, each under 15 words"],"contradicts":[indices of existing beliefs this proposition directly contradicts, empty if none]}`;
+
+  const headers = { "Content-Type": "application/json" };
+  if (apiKey) {
+    headers["x-api-key"] = apiKey;
+    headers["anthropic-version"] = "2023-06-01";
+    headers["anthropic-dangerous-direct-browser-access"] = "true";
+  }
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST", headers,
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6", max_tokens: 1000,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+  if (!resp.ok) throw new Error("api " + resp.status);
+  const data = await resp.json();
+  const text = (data.content || []).filter(x => x.type === "text").map(x => x.text).join("\n");
+  const clean = text.replace(/```json|```/g, "").trim();
+  const parsed = JSON.parse(clean);
+  const members = COUNCIL.map(m => {
+    const got = (parsed.members || []).find(x => x.id === m.id) || {};
+    return {
+      id: m.id,
+      stance: got.stance === "doubts" ? "doubts" : "affirms",
+      evidence: Math.min(0.99, Math.max(0.05, +got.evidence || 0.5)),
+      confidence: Math.min(0.99, Math.max(0.05, +got.confidence || 0.5)),
+      argument: String(got.argument || `${m.name} weighs the premise`).slice(0, 140),
+    };
+  });
+  return {
+    members,
+    verdictText: String(parsed.verdict || "").slice(0, 320),
+    regionKey: REGIONS[parsed.region] ? parsed.region : placeByKeyword(proposition),
+    evidenceLines: (parsed.evidenceLines || []).slice(0, 3).map(s => String(s).slice(0, 110)),
+    contradicts: (parsed.contradicts || []).filter(i => Number.isInteger(i) && i >= 0 && i < existing.length),
+    mode: "council",
+  };
+}
+
+/* ── STORAGE ── */
+const store = {
+  async get(k) {
+    try { if (window.storage) { const r = await window.storage.get(k); return r ? r.value : null; } } catch(e) {}
+    try { return localStorage.getItem(k); } catch(e) { return null; }
+  },
+  async set(k, v) {
+    try { if (window.storage) { await window.storage.set(k, v); return; } } catch(e) {}
+    try { localStorage.setItem(k, v); } catch(e) {}
+  },
+};
+
+/* ── STATE ── */
+const S = {
+  beliefs: [],          // user beliefs (persisted)
+  seedsOn: false,
+  apiKey: null,
+  epoch: 2026.6,
+  focus: null,
+  deliberating: false,
+  speakQueue: [],
+  weatherNote: null,
+  entered: false,
+  flare: 0,
+  stormFlash: 0,
+};
+function allBeliefs() { return S.seedsOn ? [...SEEDS, ...S.beliefs] : [...S.beliefs]; }
+function allStormPairs() {
+  const all = allBeliefs();
+  const pairs = [];
+  all.forEach((b, i) => (b.contradicts || []).forEach(targetId => {
+    const j = all.findIndex(x => x.id === targetId);
+    if (j >= 0) pairs.push([b.id, all[j].id, b.stormIntensity || 0.8]);
+  }));
+  if (S.seedsOn) pairs.push(["x_na2","x_eu1", 0.6]);
+  return pairs;
+}
+function allGoldPairs() {
+  if (!S.seedsOn) return [];
+  return [["x_na1","x_as1"],["x_eu1","x_oc1"],["x_af1","x_sa1"]];
+}
+
+/* ── WEATHER WHILE AWAY (fix #4) ── */
+function applyWeather(daysAway) {
+  if (daysAway < 0.04 || !S.beliefs.length) return null;
+  let drifted = 0, stormShift = 0;
+  S.beliefs.forEach(b => {
+    const h = parseInt(hash16(b.id).slice(0, 6), 16);
+    const drift = Math.sin(h + daysAway * 1.7) * Math.min(0.06, 0.015 * daysAway);
+    if (Math.abs(drift) > 0.004) {
+      const old = b.conf;
+      b.conf = Math.min(0.99, Math.max(0.05, b.conf + drift));
+      b.revisions = b.revisions || [];
+      b.revisions.push({ t: new Date().toISOString(), from: old, to: b.conf,
+        why: drift > 0 ? "ambient corroboration" : "ambient erosion" });
+      drifted++;
+    }
+    if (b.contradicts && b.contradicts.length) {
+      b.stormIntensity = Math.min(1.2, (b.stormIntensity || 0.8) + Math.cos(h) * 0.15);
+      stormShift++;
+    }
+  });
+  if (!drifted && !stormShift) return null;
+  const parts = [];
+  if (drifted) parts.push(`${drifted} belief${drifted>1?"s":""} drifted`);
+  if (stormShift) parts.push(`storm weather shifted`);
+  return `While you were away: ${parts.join(" · ")}.`;
+}
+
+/* ── AMBIENCE ── */
+function rng(seed) { let s = seed; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+const R1 = rng(7);
+const CONFETTI = Array.from({ length: 170 }, () => ({
+  x: R1(), y: R1(), spd: 0.0005 + R1() * 0.0015, size: 1.4 + R1() * 3.4,
+  color: CHIPCOLORS[Math.floor(R1()*6)], blink: R1() * Math.PI * 2,
+  depth: 0.3 + R1() * 0.7, rect: R1() > 0.4,
+}));
+const R2 = rng(31);
+const BOKEH = Array.from({ length: 30 }, () => ({
+  x: R2(), y: R2(), r: 14 + R2() * 50,
+  color: R2() > 0.5 ? PAL.red : PAL.cyan, a: 0.03 + R2() * 0.05, drift: R2() * Math.PI * 2,
+}));
+const R3 = rng(57);
+const BARS_L = Array.from({ length: 28 }, () => ({ h: 0.07 + R3() * 0.32, c: R3() > 0.45 ? PAL.red : PAL.cyan, ph: R3() * Math.PI * 2 }));
+const BARS_R = Array.from({ length: 28 }, () => ({ h: 0.06 + R3() * 0.36, c: R3() > 0.55 ? PAL.cyan : PAL.red, ph: R3() * Math.PI * 2 }));
+const R4 = rng(91);
+const TOWERS = Array.from({ length: 130 }, () => {
+  const a = R4() * Math.PI * 2, rr = Math.sqrt(R4());
+  return { a, rr, h: 6 + R4() * 30, ph: R4() * Math.PI * 2,
+    c: [PAL.red, "#ff7040", PAL.amber, "#ff5868", "#ff8a50"][Math.floor(R4()*5)] };
+});
+
+/* ── CAMERA / CANVAS ── */
+const rot = { y: 0.4, x: -0.22, vy: 0.0014, zoom: 1, tzoom: 1, tyaw: null, tpitch: null };
+let drag = null;
+const dims = { w: 800, h: 600 };
+let chipScreen = {};
+let summonAmt = 0;
+let T = 0;
+
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  dims.w = window.innerWidth; dims.h = window.innerHeight;
+  canvas.width = dims.w * dpr; canvas.height = dims.h * dpr;
+  canvas.style.width = dims.w + "px"; canvas.style.height = dims.h + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener("resize", resize);
+resize();
+
+function sph(latDeg, lonDeg, ry, rx) {
+  const lat = latDeg * D2R, lon = lonDeg * D2R + ry;
+  const x = Math.cos(lat) * Math.sin(lon);
+  const y = Math.sin(lat);
+  const z = Math.cos(lat) * Math.cos(lon);
+  return [x, y * Math.cos(rx) - z * Math.sin(rx), y * Math.sin(rx) + z * Math.cos(rx)];
+}
+function hexA(color, a) { return color + Math.round(Math.min(1, Math.max(0, a)) * 255).toString(16).padStart(2, "0"); }
+
+function draw() {
+  T += 0.016;
+  const t = T, ep = S.epoch, w = dims.w, h = dims.h;
+
+  const beat = Math.max(0, Math.sin((t % 9) / 9 * Math.PI * 2 - Math.PI / 2));
+  S.flare = Math.max(0, S.flare - 0.012);
+  S.stormFlash = Math.max(0, S.stormFlash - 0.008);
+  const flare = Math.max(S.flare, Math.pow(Math.max(0, 1 - (t % 9) / 1.6), 2) * 0.35);
+
+  if (!drag) {
+    if (rot.tyaw !== null) {
+      let dyaw = rot.tyaw - rot.y; dyaw = ((dyaw + Math.PI) % (2*Math.PI)) - Math.PI;
+      rot.y += dyaw * 0.06;
+      rot.x += (rot.tpitch - rot.x) * 0.06;
+      if (Math.abs(dyaw) < 0.002) rot.tyaw = null;
+    } else {
+      rot.y += rot.vy * (S.focus || S.deliberating ? 0.12 : 1);
+    }
+  }
+  rot.zoom += (rot.tzoom - rot.zoom) * 0.06;
+  summonAmt += ((S.deliberating ? 1 : 0) - summonAmt) * 0.035;
+
+  const R = Math.min(w, h) * 0.265 * rot.zoom;
+  const CX = w / 2, CY = h / 2 - 26;
+
+  ctx.fillStyle = PAL.void;
+  ctx.fillRect(0, 0, w, h);
+
+  // storm weather tints the sky when contradictions exist
+  const stormCount = allStormPairs().length;
+  if (stormCount > 0) {
+    const sg = ctx.createRadialGradient(CX, CY * 0.4, 0, CX, CY * 0.4, w * 0.7);
+    sg.addColorStop(0, hexA(PAL.red, 0.025 + S.stormFlash * 0.08 + Math.sin(t * 0.7) * 0.01));
+    sg.addColorStop(1, "transparent");
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  BOKEH.forEach(b => {
+    const bx = (b.x + Math.sin(t * 0.05 + b.drift) * 0.01) * w;
+    const by = (b.y + Math.cos(t * 0.04 + b.drift) * 0.01) * h;
+    const g = ctx.createRadialGradient(bx, by, 0, bx, by, b.r);
+    g.addColorStop(0, hexA(b.color, b.a));
+    g.addColorStop(1, "transparent");
+    ctx.fillStyle = g;
+    ctx.fillRect(bx - b.r, by - b.r, b.r * 2, b.r * 2);
+  });
+
+  const bw = w * 0.012;
+  BARS_L.forEach((b, i) => {
+    const bh = b.h * h * (0.85 + Math.sin(t * 0.7 + b.ph) * 0.15);
+    ctx.fillStyle = hexA(b.c, 0.085);
+    ctx.fillRect(w * 0.01 + i * bw * 1.35, h * 0.87 - bh, bw, bh);
+  });
+  BARS_R.forEach((b, i) => {
+    const bh = b.h * h * (0.85 + Math.sin(t * 0.6 + b.ph) * 0.15);
+    ctx.fillStyle = hexA(b.c, 0.075);
+    ctx.fillRect(w * 0.99 - (28 - i) * bw * 1.35, h * 0.89 - bh, bw, bh);
+  });
+
+  ctx.strokeStyle = "rgba(65, 216, 255, 0.05)";
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 9; i++) {
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.12 + i * h * 0.1);
+    ctx.lineTo(w, h * 0.09 + i * h * 0.1);
+    ctx.stroke();
+  }
+
+  CONFETTI.forEach(p => {
+    p.y += p.spd; if (p.y > 1.05) p.y = -0.05;
+    const px = p.x * w, py = p.y * h;
+    if (Math.hypot(px - CX, py - CY) < R * 1.02) return;
+    const blink = 0.3 + Math.abs(Math.sin(t * 1.5 + p.blink)) * 0.65;
+    ctx.globalAlpha = blink * p.depth * 0.9;
+    ctx.fillStyle = p.color;
+    if (p.rect) ctx.fillRect(px, py, p.size, p.size * 1.7);
+    else { ctx.beginPath(); ctx.arc(px, py, p.size * 0.6, 0, Math.PI * 2); ctx.fill(); }
+  });
+  ctx.globalAlpha = 1;
+
+  // pedestal
+  const pedY = CY + R * 1.17, pedRx = R * 0.95, pedRy = R * 0.21;
+  const pool = ctx.createRadialGradient(CX, pedY, 0, CX, pedY, pedRx * 1.3);
+  pool.addColorStop(0, `rgba(255, 80, 50, ${0.24 + flare * 0.2})`);
+  pool.addColorStop(0.5, "rgba(255, 110, 60, 0.08)");
+  pool.addColorStop(1, "transparent");
+  ctx.fillStyle = pool;
+  ctx.fillRect(CX - pedRx * 1.35, pedY - pedRy * 2.5, pedRx * 2.7, pedRy * 4.6);
+
+  [...TOWERS].sort((a, b) => Math.sin(a.a) - Math.sin(b.a)).forEach(tw => {
+    const tx = CX + Math.cos(tw.a) * tw.rr * pedRx;
+    const tz = Math.sin(tw.a);
+    const ty = pedY + tz * tw.rr * pedRy;
+    const grow = 0.7 + Math.sin(t * 1.2 + tw.ph) * 0.18 + flare * 0.5;
+    const th = tw.h * grow * (0.7 + (tz + 1) * 0.25) * (R / 180);
+    const twd = 2.6 * (0.7 + (tz + 1) * 0.25);
+    const a = 0.38 + (tz + 1) * 0.3;
+    ctx.fillStyle = hexA(tw.c, a);
+    ctx.fillRect(tx - twd / 2, ty - th, twd, th);
+    ctx.fillStyle = hexA("#ffe0b0", a * 0.95);
+    ctx.fillRect(tx - twd / 2, ty - th, twd, 1.3);
+  });
+
+  // globe
+  const halo = ctx.createRadialGradient(CX, CY, R * 0.8, CX, CY, R * 1.75);
+  halo.addColorStop(0, `rgba(47, 126, 168, ${0.22 + beat * 0.05 + flare * 0.1})`);
+  halo.addColorStop(0.6, "rgba(47, 126, 168, 0.05)");
+  halo.addColorStop(1, "transparent");
+  ctx.fillStyle = halo;
+  ctx.beginPath(); ctx.arc(CX, CY, R * 1.75, 0, Math.PI * 2); ctx.fill();
+
+  const body = ctx.createRadialGradient(CX - R*0.3, CY - R*0.32, R*0.1, CX, CY, R);
+  body.addColorStop(0, "rgba(28, 64, 105, 0.6)");
+  body.addColorStop(0.65, "rgba(9, 24, 52, 0.75)");
+  body.addColorStop(1, "rgba(3, 8, 22, 0.88)");
+  ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2);
+  ctx.fillStyle = body; ctx.fill();
+
+  const coreR = R * (0.36 + beat * 0.03 + flare * 0.12);
+  const core = ctx.createRadialGradient(CX, CY, 0, CX, CY, coreR);
+  core.addColorStop(0, `rgba(255, 220, 160, ${0.5 + flare * 0.5})`);
+  core.addColorStop(0.4, `rgba(255, 150, 80, ${0.24 + flare * 0.3})`);
+  core.addColorStop(1, "transparent");
+  ctx.fillStyle = core;
+  ctx.beginPath(); ctx.arc(CX, CY, coreR, 0, Math.PI * 2); ctx.fill();
+
+  // grid
+  for (let lon = 0; lon < 360; lon += 20) {
+    ctx.beginPath();
+    let started = false;
+    for (let lat = -85; lat <= 85; lat += 5) {
+      const p = sph(lat, lon, rot.y, rot.x);
+      if (p[2] > 0) {
+        const sx2 = CX + p[0] * R, sy2 = CY - p[1] * R;
+        if (!started) { ctx.moveTo(sx2, sy2); started = true; } else ctx.lineTo(sx2, sy2);
+      } else started = false;
+    }
+    ctx.strokeStyle = "rgba(58, 143, 208, 0.20)";
+    ctx.lineWidth = 0.7;
+    ctx.stroke();
+  }
+  for (let lat = -75; lat <= 75; lat += 15) {
+    ctx.beginPath();
+    let started = false;
+    for (let lon = 0; lon <= 360; lon += 5) {
+      const p = sph(lat, lon, rot.y, rot.x);
+      if (p[2] > 0) {
+        const sx2 = CX + p[0] * R, sy2 = CY - p[1] * R;
+        if (!started) { ctx.moveTo(sx2, sy2); started = true; } else ctx.lineTo(sx2, sy2);
+      } else started = false;
+    }
+    ctx.strokeStyle = `rgba(58, 143, 208, ${Math.abs(lat) < 5 ? 0.30 : 0.18})`;
+    ctx.lineWidth = Math.abs(lat) < 5 ? 1 : 0.7;
+    ctx.stroke();
+  }
+
+  // continents
+  OCEAN_DOTS.forEach(d => {
+    const p = sph(d.lat, d.lon, rot.y, rot.x);
+    if (p[2] <= 0.02) return;
+    ctx.fillStyle = `rgba(47, 126, 168, ${0.17 * p[2]})`;
+    ctx.fillRect(CX + p[0] * R - 0.8, CY - p[1] * R - 0.8, 1.6, 1.6);
+  });
+  LAND_DOTS.forEach(d => {
+    const p = sph(d.lat, d.lon, rot.y, rot.x);
+    if (p[2] <= 0.02) return;
+    const tw = 0.6 + Math.abs(Math.sin(t * 1.1 + d.j)) * 0.4 + flare * 0.35;
+    const sz = (1.7 + p[2] * 1.5) * (R / 200);
+    ctx.fillStyle = hexA(d.c, Math.min(1, tw * p[2]));
+    ctx.fillRect(CX + p[0] * R - sz/2, CY - p[1] * R - sz/2, sz, sz);
+  });
+
+  const CHIPS_ALL = allBeliefs();
+  const aliveOf = c => { const a = ep - c.born; return a < 0 ? 0 : Math.min(1, 0.35 + a * 8); };
+  const pos3 = {};
+  CHIPS_ALL.forEach(c => { pos3[c.id] = sph(c.lat, c.lon, rot.y, rot.x); });
+
+  function drawArc(aId, bId, color, storm, intensity) {
+    const A = CHIPS_ALL.find(c => c.id === aId), B = CHIPS_ALL.find(c => c.id === bId);
+    if (!A || !B) return;
+    const al = Math.min(aliveOf(A), aliveOf(B));
+    if (al <= 0) return;
+    const pa = pos3[aId], pb = pos3[bId];
+    let mx = (pa[0]+pb[0])/2, my = (pa[1]+pb[1])/2, mz = (pa[2]+pb[2])/2;
+    const ml = Math.hypot(mx, my, mz) || 1;
+    const lift = 1.3 + 0.25 * (1 - (pa[0]*pb[0] + pa[1]*pb[1] + pa[2]*pb[2]));
+    mx = mx/ml*lift; my = my/ml*lift; mz = mz/ml*lift;
+    const inten = intensity || 1;
+    const flick = storm ? (Math.sin(t * 9 + pa[0] * 10) > 0.5 ? 1 : 0.3) * inten : 1;
+    let prev = null;
+    for (let i = 0; i <= 30; i++) {
+      const f = i / 30, u = 1 - f;
+      let px = u*u*pa[0] + 2*u*f*mx + f*f*pb[0];
+      let py = u*u*pa[1] + 2*u*f*my + f*f*pb[1];
+      const pz = u*u*pa[2] + 2*u*f*mz + f*f*pb[2];
+      if (storm) {
+        px += Math.sin(t*14 + i*5.3) * 0.018 * Math.sin(f*Math.PI) * inten;
+        py += Math.cos(t*12 + i*3.9) * 0.018 * Math.sin(f*Math.PI) * inten;
+      }
+      const sx2 = CX + px * R, sy2 = CY - py * R;
+      const vis = pz > -0.1;
+      if (prev && vis && prev.vis) {
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y); ctx.lineTo(sx2, sy2);
+        ctx.strokeStyle = hexA(color, (0.15 + Math.sin(f*Math.PI)*0.5) * flick * al);
+        ctx.lineWidth = storm ? 1.1 : 0.9;
+        ctx.stroke();
+      }
+      prev = { x: sx2, y: sy2, vis };
+    }
+    if (!storm) {
+      const prog = (t * 0.14 + aId.charCodeAt(2) * 0.13) % 1;
+      const u = 1 - prog;
+      const px = u*u*pa[0] + 2*u*prog*mx + prog*prog*pb[0];
+      const py = u*u*pa[1] + 2*u*prog*my + prog*prog*pb[1];
+      const pz = u*u*pa[2] + 2*u*prog*mz + prog*prog*pb[2];
+      if (pz > -0.05) {
+        ctx.beginPath(); ctx.arc(CX + px*R, CY - py*R, 1.8, 0, Math.PI*2);
+        ctx.fillStyle = PAL.goldHot;
+        ctx.shadowColor = PAL.gold; ctx.shadowBlur = 9;
+        ctx.fill(); ctx.shadowBlur = 0;
+      }
+    }
+  }
+  allGoldPairs().forEach(pr => drawArc(pr[0], pr[1], PAL.gold, false));
+  allStormPairs().forEach(pr => drawArc(pr[0], pr[1], PAL.red, true, pr[2]));
+
+  // chips
+  const cs = {};
+  [...CHIPS_ALL].sort((a,b) => pos3[a.id][2] - pos3[b.id][2]).forEach(c => {
+    const al = aliveOf(c);
+    if (al <= 0) { cs[c.id] = null; return; }
+    const p = pos3[c.id];
+    if (p[2] <= 0.05) { cs[c.id] = null; return; }
+    const sx2 = CX + p[0] * R, sy2 = CY - p[1] * R;
+    cs[c.id] = [sx2, sy2];
+    const isFocus = S.focus && S.focus.id === c.id;
+    const scale = (R / 200) * (0.8 + p[2] * 0.4) * (isFocus ? 1.55 : 1);
+    const cw = 13.5 * scale, ch2 = 9.5 * scale;
+
+    const g = ctx.createRadialGradient(sx2, sy2, 0, sx2, sy2, cw * 2.4);
+    g.addColorStop(0, hexA(c.color, 0.55 * al * p[2]));
+    g.addColorStop(1, "transparent");
+    ctx.fillStyle = g;
+    ctx.fillRect(sx2 - cw*2.4, sy2 - cw*2.4, cw*4.8, cw*4.8);
+
+    ctx.globalAlpha = al * (0.7 + p[2] * 0.3);
+    ctx.fillStyle = "rgba(6, 12, 28, 0.88)";
+    ctx.fillRect(sx2 - cw/2, sy2 - ch2/2, cw, ch2);
+    ctx.strokeStyle = c.color;
+    ctx.lineWidth = isFocus ? 1.5 : 1;
+    ctx.strokeRect(sx2 - cw/2, sy2 - ch2/2, cw, ch2);
+    ctx.fillStyle = c.color;
+    ctx.fillRect(sx2 - cw*0.3, sy2 - ch2*0.22, cw*0.18, ch2*0.44);
+    ctx.fillRect(sx2 + cw*0.02, sy2 - ch2*0.06, cw*0.32, ch2*0.16);
+    ctx.fillRect(sx2 + cw*0.02, sy2 + ch2*0.14, cw*0.2, ch2*0.1);
+    ctx.globalAlpha = 1;
+
+    if (isFocus) {
+      ctx.beginPath();
+      ctx.arc(sx2, sy2, cw * 1.15 + Math.sin(t*2.6)*2, 0, Math.PI*2);
+      ctx.strokeStyle = hexA(PAL.gold, 0.8);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  });
+  chipScreen = cs;
+
+  // limb
+  ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(82, 184, 255, ${0.38 + flare * 0.35})`;
+  ctx.lineWidth = 1.3;
+  ctx.shadowColor = "rgba(82, 184, 255, 0.85)";
+  ctx.shadowBlur = 17 + flare * 20;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // council orbits
+  COUNCIL.forEach(m => {
+    const orbR = R * (1.48 - summonAmt * 0.32);
+    const ang = t * m.speed * (1 + summonAmt * 0.8) + m.phase;
+    const ox = Math.cos(ang) * orbR;
+    const oy = Math.sin(ang) * orbR * Math.cos(m.incl) * 0.42;
+    const oz = Math.sin(ang) * Math.sin(m.incl);
+    const sx2 = CX + ox, sy2 = CY + oy;
+    const front = oz >= 0;
+    const a = front ? 0.95 : 0.30;
+
+    ctx.beginPath();
+    for (let k = 0; k <= 40; k++) {
+      const ta = ang - k * 0.05;
+      const tx2 = CX + Math.cos(ta) * orbR;
+      const ty2 = CY + Math.sin(ta) * orbR * Math.cos(m.incl) * 0.42;
+      if (k === 0) ctx.moveTo(tx2, ty2); else ctx.lineTo(tx2, ty2);
+    }
+    ctx.strokeStyle = hexA(m.color, 0.15 * a);
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    const er = 4 + summonAmt * 2.5;
+    const g = ctx.createRadialGradient(sx2, sy2, 0, sx2, sy2, er * 3.5);
+    g.addColorStop(0, hexA(m.color, 0.6 * a));
+    g.addColorStop(1, "transparent");
+    ctx.fillStyle = g;
+    ctx.fillRect(sx2 - er*3.5, sy2 - er*3.5, er*7, er*7);
+    ctx.beginPath(); ctx.arc(sx2, sy2, er, 0, Math.PI*2);
+    ctx.fillStyle = hexA(m.color, a);
+    ctx.fill();
+    ctx.fillStyle = "#03030a";
+    ctx.font = (er + 2) + "px serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(m.glyph, sx2, sy2 + 0.5);
+    ctx.textBaseline = "alphabetic";
+
+    if (summonAmt > 0.5 && front) {
+      ctx.font = "300 9px Inter, sans-serif";
+      ctx.fillStyle = hexA(m.color, 0.87);
+      ctx.fillText(m.name.toUpperCase(), sx2, sy2 - er - 7);
+    }
+  });
+
+  const vg = ctx.createRadialGradient(CX, CY, Math.min(w,h)*0.32, CX, CY, Math.max(w,h)*0.82);
+  vg.addColorStop(0, "transparent");
+  vg.addColorStop(1, "rgba(3, 3, 9, 0.84)");
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, w, h);
+
+  requestAnimationFrame(draw);
+}
+
+/* ── DOM HELPERS ── */
+const $ = id => document.getElementById(id);
+function show(id, on) { $(id).style.display = on ? "" : "none"; }
+function setStatusLine() {
+  const n = allBeliefs().length;
+  const storms = allStormPairs().length;
+  $("stat1").textContent = n + " belief" + (n===1?"":"s") + " held";
+  $("stat2").textContent = storms ? (storms + " storm" + (storms>1?"s":"") + " active") : "skies clear";
+  $("stat2").style.color = storms ? "#ff7060" : PAL.dim;
+  $("stat3").textContent = S.beliefs.length + " sealed by you";
+  $("modeTag").textContent = S.apiKey === "artifact" ? "council: live" :
+    S.apiKey ? "studio: live" : "council: offline";
+}
+
+/* ── FOCUS / CAPTION ── */
+function esc(s2) { return String(s2).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function showFocus(b) {
+  S.focus = b;
+  if (!b) { show("caption", false); return; }
+  $("capRegion").textContent = b.region + (b.receipt ? " · sealed" : "");
+  $("capRegion").style.color = b.color;
+  $("capLabel").textContent = b.label;
+  $("capDetail").textContent = b.detail;
+  let meta = "";
+  if (b.receipt) {
+    meta = "claim " + b.receipt.claim_id.slice(0,8) + " · " + b.receipt.winner +
+      " led · integrity " + b.receipt.integrity.toFixed(4) +
+      " · dissent " + b.receipt.dissent.length + " preserved";
+  } else {
+    meta = "confidence " + Math.round(b.conf * 100) + "% · b. " + b.born.toFixed(1);
+  }
+  $("capMeta").textContent = meta;
+  // lineage (fix #3)
+  let lin = "";
+  if (b.evidence && b.evidence.length) {
+    lin += b.evidence.map(e => "◦ " + esc(e)).join("<br>");
+  }
+  if (b.revisions && b.revisions.length) {
+    const last = b.revisions[b.revisions.length-1];
+    lin += (lin ? "<br>" : "") + "↻ " + Math.round(last.from*100) + "% → " +
+      Math.round(last.to*100) + "% (" + last.why + ")";
+  }
+  if (b.contradicts && b.contradicts.length) {
+    lin += (lin ? "<br>" : "") + "⚡ contradicts " + b.contradicts.length + " held belief" + (b.contradicts.length>1?"s":"");
+  }
+  $("capLineage").innerHTML = lin;
+  show("caption", true);
+}
+
+/* ── DELIBERATION FLOW ── */
+const PHASES = ["Receiving proposition","Council convening","Claims generated",
+  "Counter-weights exchanged","Integrity scored","Verdict sealed"];
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+async function pose() {
+  const q = $("entry").value.trim();
+  if (!q || S.deliberating) return;
+  $("entry").value = "";
+  showFocus(null);
+  S.deliberating = true;
+  $("entry").disabled = true;
+  $("entry").placeholder = "The council is deliberating…";
+  $("goBtn").classList.remove("ready");
+  show("firstRun", false);
+
+  const existing = allBeliefs();
+
+  // kick off the real reasoning while theater plays
+  let resultPromise;
+  if (S.apiKey) {
+    resultPromise = apiDeliberate(q, existing, S.apiKey === "artifact" ? null : S.apiKey)
+      .catch(() => localDeliberate(q, existing));
+  } else {
+    resultPromise = Promise.resolve(localDeliberate(q, existing));
+  }
+
+  for (let i = 0; i < 2; i++) {
+    $("phaseText").textContent = PHASES[i];
+    show("phaseWrap", true);
+    await wait(900);
+  }
+
+  const result = await resultPromise;
+  const { winner, dissent, consensusPct } = scoreAndResolve(result.members);
+
+  // members speak their real arguments
+  for (let i = 2; i < PHASES.length; i++) {
+    $("phaseText").textContent = PHASES[i];
+    if (i === 2 || i === 3) {
+      const half = i === 2 ? result.members.slice(0, 3) : result.members.slice(3);
+      for (const mem of half) {
+        const m = COUNCIL_BY_ID[mem.id];
+        $("speakName").textContent = m.glyph + " " + m.name + " — " + mem.stance;
+        $("speakName").style.color = m.color;
+        $("speakLine").textContent = "“" + mem.argument + "”";
+        show("speakWrap", true);
+        await wait(1700);
+      }
+      show("speakWrap", false);
+    } else {
+      await wait(850);
+    }
+  }
+  show("phaseWrap", false);
+
+  // build belief
+  const pHash = hash16(q);
+  const region = REGIONS[result.regionKey];
+  const jitter = ((parseInt(pHash.slice(0,4),16) % 17) - 8);
+  const stance = winner.stance;
+  const verdictText = result.verdictText ||
+    (stance === "affirms"
+      ? "The Council holds this likely true. " + (6 - dissent.length) + " of 6 affirm, led by " + COUNCIL_BY_ID[winner.id].name + "."
+      : "The Council holds this doubtful. " + (6 - dissent.length) + " of 6 doubt, led by " + COUNCIL_BY_ID[winner.id].name + ".");
+
+  const contradictIds = result.contradicts.map(i => existing[i] && existing[i].id).filter(Boolean);
+
+  const belief = {
+    id: "u_" + pHash.slice(0, 8) + "_" + Date.now().toString(36),
+    proposition: q,
+    lat: Math.max(-60, Math.min(65, region.lat + jitter)),
+    lon: region.lon + ((parseInt(pHash.slice(4,8),16) % 25) - 12),
+    color: stance === "affirms" ? CHIPCOLORS[parseInt(pHash.slice(8,9),16) % 6] : PAL.red,
+    label: q.length > 52 ? q.slice(0, 49) + "…" : q,
+    region: region.name,
+    detail: verdictText,
+    conf: consensusPct / 100,
+    born: 2026.55,
+    evidence: result.evidenceLines,
+    contradicts: contradictIds,
+    stormIntensity: contradictIds.length ? 0.9 : 0,
+    revisions: [],
+    receipt: {
+      claim_id: hash16(winner.id + pHash),
+      winner: COUNCIL_BY_ID[winner.id].name,
+      integrity: winner.integrity,
+      consensus: consensusPct,
+      mode: result.mode,
+      dissent: dissent.map(d => ({ name: COUNCIL_BY_ID[d.id].name, argument: d.argument })),
+      members: result.members.map(m => ({ id: m.id, stance: m.stance,
+        evidence: m.evidence, confidence: m.confidence, argument: m.argument,
+        integrity: m.integrity })),
+      timestamp: new Date().toISOString(),
+    },
+  };
+
+  S.beliefs.push(belief);
+  await store.set("concord-beliefs", JSON.stringify(S.beliefs));
+  await store.set("concord-lastvisit", String(Date.now()));
+
+  S.flare = 1;
+  if (contradictIds.length) {
+    S.stormFlash = 1; // the sky answers a new storm
+  }
+
+  S.deliberating = false;
+  $("entry").disabled = false;
+  $("entry").placeholder = "Pose a proposition to the world…";
+  setStatusLine();
+
+  rot.tyaw = -belief.lon * D2R;
+  rot.tpitch = Math.max(-0.7, Math.min(0.7, belief.lat * D2R * 0.55));
+  rot.tzoom = 1.5;
+  showFocus(belief);
+}
+
+/* ── POINTER ── */
+function hitChip(mx, my) {
+  let best = null, bd = 30;
+  for (const c of allBeliefs()) {
+    const p = chipScreen[c.id];
+    if (!p) continue;
+    const d = Math.hypot(p[0]-mx, p[1]-my);
+    if (d < bd) { bd = d; best = c; }
+  }
+  return best;
+}
+const pointers = new Map();
+let pinchDist = 0;
+canvas.addEventListener("pointerdown", e => {
+  pointers.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pointers.size === 2) {
+    const pts = [...pointers.values()];
+    pinchDist = Math.hypot(pts[0][0]-pts[1][0], pts[0][1]-pts[1][1]);
+    drag = null;
+  } else {
+    drag = { x: e.clientX, y: e.clientY, moved: false, ry: rot.y, rx: rot.x };
+  }
+});
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  rot.tzoom = Math.max(0.6, Math.min(2.6, rot.tzoom * (e.deltaY > 0 ? 0.92 : 1.09)));
+}, { passive: false });
+window.addEventListener("pointermove", e => {
+  if (pointers.has(e.pointerId)) pointers.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pointers.size === 2) {
+    const pts = [...pointers.values()];
+    const d = Math.hypot(pts[0][0]-pts[1][0], pts[0][1]-pts[1][1]);
+    if (pinchDist > 0) {
+      rot.tzoom = Math.max(0.6, Math.min(2.6, rot.tzoom * (d / pinchDist)));
+      rot.zoom = rot.tzoom;
+    }
+    pinchDist = d;
+    return;
+  }
+  if (!drag) {
+    canvas.style.cursor = hitChip(e.clientX, e.clientY) ? "pointer" : "grab";
+    return;
+  }
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+  rot.y = drag.ry + dx * 0.005;
+  rot.x = Math.max(-0.9, Math.min(0.9, drag.rx - dy * 0.004));
+  rot.tyaw = null;
+});
+window.addEventListener("pointerup", e => {
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2) pinchDist = 0;
+  const moved = drag && drag.moved;
+  drag = null;
+  if (moved || S.deliberating) return;
+  if (e.target !== canvas) return;
+  const hit = hitChip(e.clientX, e.clientY);
+  if (hit) {
+    rot.tyaw = -hit.lon * D2R;
+    rot.tpitch = Math.max(-0.7, Math.min(0.7, hit.lat * D2R * 0.55));
+    rot.tzoom = 1.5;
+    showFocus(hit);
+  } else {
+    rot.tzoom = 1;
+    showFocus(null);
+  }
+});
+
+/* ── UI WIRING ── */
+$("entry").addEventListener("keydown", e => {
+  if (e.key === "Enter") pose();
+});
+$("entry").addEventListener("input", () => {
+  $("goBtn").classList.toggle("ready", !!$("entry").value.trim());
+});
+$("goBtn").addEventListener("click", pose);
+$("epoch").addEventListener("input", e => {
+  S.epoch = parseFloat(e.target.value);
+  $("epochLabel").textContent = S.epoch >= 2026.55 ? "NOW" : String(Math.floor(S.epoch));
+});
+$("seedsBtn").addEventListener("click", async () => {
+  S.seedsOn = !S.seedsOn;
+  $("seedsBtn").textContent = S.seedsOn ? "Hide exemplars" : "Show exemplars";
+  await store.set("concord-seeds", S.seedsOn ? "1" : "0");
+  setStatusLine();
+  if (allBeliefs().length) show("firstRun", false);
+  else show("firstRun", true);
+});
+$("keyBtn").addEventListener("click", async () => {
+  const k = prompt("Anthropic API key (stored locally, never sent anywhere but api.anthropic.com):", "");
+  if (k && k.trim()) {
+    S.apiKey = k.trim();
+    await store.set("concord-key", S.apiKey);
+    setStatusLine();
+  }
+});
+
+/* ── BOOT ── */
+(async function boot() {
+  try {
+    const raw = await store.get("concord-beliefs");
+    if (raw) S.beliefs = JSON.parse(raw) || [];
+  } catch(e) {}
+  try {
+    const sd = await store.get("concord-seeds");
+    S.seedsOn = sd === "1";
+    $("seedsBtn").textContent = S.seedsOn ? "Hide exemplars" : "Show exemplars";
+  } catch(e) {}
+  try {
+    const k = await store.get("concord-key");
+    if (k) S.apiKey = k;
+  } catch(e) {}
+
+  // detect artifact environment (keyless API works there)
+  if (!S.apiKey) {
+    try {
+      const ping = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1,
+          messages: [{ role: "user", content: "." }] }),
+      });
+      if (ping.ok) S.apiKey = "artifact";
+    } catch(e) {}
+  }
+
+  // weather while away (fix #4)
+  try {
+    const lv = await store.get("concord-lastvisit");
+    if (lv) {
+      const daysAway = (Date.now() - parseInt(lv, 10)) / 86400000;
+      const note = applyWeather(daysAway);
+      if (note) {
+        S.weatherNote = note;
+        $("weatherText").textContent = note;
+        show("weatherWrap", true);
+        setTimeout(() => show("weatherWrap", false), 9000);
+        await store.set("concord-beliefs", JSON.stringify(S.beliefs));
+      }
+    }
+  } catch(e) {}
+  await store.set("concord-lastvisit", String(Date.now()));
+
+  // first-run (fix #5)
+  show("firstRun", allBeliefs().length === 0);
+
+  setStatusLine();
+  setTimeout(() => { document.body.classList.add("entered"); }, 250);
+  requestAnimationFrame(draw);
+})();
+</script>
+<style>
+#taskBtn{position:fixed;right:24px;top:142px;z-index:10}
+#taskPanel{position:fixed;right:18px;top:188px;width:min(390px,92vw);z-index:11;background:rgba(6,10,26,.92);border:1px solid rgba(232,185,106,.35);border-radius:14px;padding:14px;display:none;color:#f0f2fa;font-family:Inter,sans-serif}
+#taskPanel select,#taskPanel textarea,#taskPanel button{width:100%;margin-top:8px;background:#050816;color:#f0f2fa;border:1px solid rgba(140,170,230,.25);border-radius:8px;padding:10px}
+#taskOut{white-space:pre-wrap;font-family:'JetBrains Mono',monospace;font-size:11px;max-height:260px;overflow:auto;color:#aab6d4;margin-top:10px}
+</style>
+<button class="pill" id="taskBtn">Tasks</button>
+<div id="taskPanel">
+  <div style="letter-spacing:.22em;text-transform:uppercase;color:#e8b96a;font-size:11px">OmniAuthor Task Engine</div>
+  <select id="taskKind">
+    <option value="plan">Plan task</option>
+    <option value="status">Project status</option>
+    <option value="run_tests">Run tests</option>
+    <option value="git_status">Git status</option>
+    <option value="save_note">Save note</option>
+    <option value="make_todo">Make todo list</option>
+    <option value="read_notes">Read notes</option>
+  </select>
+  <textarea id="taskText" rows="5" placeholder="Tell OmniAuthor what to do..."></textarea>
+  <button id="taskRun">Run Task</button>
+  <div id="taskOut"></div>
+</div>
+<script>
+document.getElementById("taskBtn").onclick=()=>{
+  const p=document.getElementById("taskPanel");
+  p.style.display=p.style.display==="none"?"block":"none";
+};
+document.getElementById("taskRun").onclick=async()=>{
+  const kind=document.getElementById("taskKind").value;
+  const text=document.getElementById("taskText").value;
+  const out=document.getElementById("taskOut");
+  out.textContent="Working...";
+  try{
+    const r=await fetch("/api/task",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind,text})});
+    const j=await r.json();
+    out.textContent=j.output;
+  }catch(e){out.textContent="Task failed: "+e;}
+};
+</script>
+
+</body></html>
+
+CTRL + D
