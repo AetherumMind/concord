@@ -2806,6 +2806,315 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+
+<style id="OMNIAUTHOR_PLATFORM_CORE_V11_STYLE">
+#omniCoreBtnV11{
+  position:fixed;right:16px;top:244px;z-index:999999;
+  background:rgba(18,10,34,.92);color:#ffd98f;
+  border:1px solid rgba(255,217,143,.5);border-radius:12px;
+  padding:10px 12px;font-family:monospace;font-size:9px;
+  letter-spacing:.14em;backdrop-filter:blur(12px)
+}
+#omniCorePanelV11{
+  position:fixed;left:10px;right:10px;bottom:82px;z-index:999999;
+  max-height:62vh;overflow:auto;display:none;
+  background:rgba(2,4,14,.97);color:#e8e4d9;
+  border:1px solid rgba(255,217,143,.48);border-radius:18px;
+  padding:14px;font-family:monospace;font-size:11px;
+  box-shadow:0 0 55px rgba(255,217,143,.14);backdrop-filter:blur(14px)
+}
+.omniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.omniGrid button{
+  background:rgba(8,12,28,.9);color:#ffd98f;
+  border:1px solid rgba(255,217,143,.38);border-radius:12px;
+  padding:10px 6px;font-family:monospace;font-size:9px;letter-spacing:.12em
+}
+.omniTitle{color:#ffd98f;letter-spacing:.22em;margin:12px 0 8px}
+.omniCard{border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0}
+.omniGood{color:#00e5cc}.omniWarn{color:#ff6b35}.omniDim{color:#8b96b8}.omniGold{color:#ffd98f}
+</style>
+
+<script id="OMNIAUTHOR_PLATFORM_CORE_V11">
+(() => {
+  const VERSION="v11";
+  const BELIEFS="omniauthor-belief-ledger-v1";
+  const ARTIFACTS="upfis-artifacts-v10";
+  const WORLD="omniauthor-world-model-v11";
+  const AGENTS="omniauthor-agent-runtime-v11";
+  const PREDICTIONS="omniauthor-predictions-v11";
+  const RUN="omniauthor-platform-auto-v11";
+
+  const AGENT_NAMES=[
+    "Architect","Scientist","Skeptic","Historian","Auditor",
+    "Strategist","Dreamer","Cartographer","Synthesizer","Judge"
+  ];
+
+  function load(k,d=[]){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}}
+  function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+  function id(p){return p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
+  function now(){return new Date().toISOString()}
+  function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+  function pick(a){return a[Math.floor(Math.random()*a.length)]}
+  function words(t){return String(t||"").toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>4)}
+  function relation(a,b){const w=words(a),bt=String(b||"").toLowerCase();return w.filter(x=>bt.includes(x)).length}
+
+  function beliefs(){return load(BELIEFS,[])}
+  function artifacts(){return load(ARTIFACTS,[])}
+  function world(){return load(WORLD,{entities:{},relations:[],updated_at:now()})}
+  function agents(){return load(AGENTS,{})}
+  function predictions(){return load(PREDICTIONS,[])}
+
+  function initAgents(){
+    const a=agents();
+    AGENT_NAMES.forEach(n=>{
+      if(!a[n]) a[n]={
+        name:n,trust:.72,wins:0,losses:0,cycles:0,
+        specialty:{
+          Architect:"structure",
+          Scientist:"evidence",
+          Skeptic:"failure modes",
+          Historian:"precedent",
+          Auditor:"consistency",
+          Strategist:"usefulness",
+          Dreamer:"hypothesis",
+          Cartographer:"relationships",
+          Synthesizer:"integration",
+          Judge:"verdict"
+        }[n]||"reasoning",
+        memory:[]
+      };
+    });
+    save(AGENTS,a);
+    return a;
+  }
+
+  function validClaim(t){
+    const s=String(t||"").trim();
+    if(s.length<20)return false;
+    if(/^https?:\/\//i.test(s))return false;
+    if(/chrome menu|reload|settings|copy|paste|click|show me her/i.test(s))return false;
+    return /\b(is|are|becomes|causes|requires|means|should|will|can|cannot|must|creates|supports|contradicts|preserves|improves|reduces|increases)\b/i.test(s);
+  }
+
+  function extractEntities(text){
+    return [...new Set(words(text).slice(0,14))];
+  }
+
+  function updateWorldModel(belief){
+    const wm=world();
+    const ents=extractEntities(belief.text);
+    ents.forEach(e=>{
+      if(!wm.entities[e]) wm.entities[e]={id:e,count:0,beliefs:[],created_at:now()};
+      wm.entities[e].count++;
+      if(!wm.entities[e].beliefs.includes(belief.id)) wm.entities[e].beliefs.push(belief.id);
+    });
+    for(let i=0;i<ents.length;i++){
+      for(let j=i+1;j<ents.length;j++){
+        wm.relations.push({id:id("rel"),a:ents[i],b:ents[j],belief:belief.id,weight:.5,created_at:now()});
+      }
+    }
+    wm.relations=wm.relations.slice(-1200);
+    wm.updated_at=now();
+    save(WORLD,wm);
+    return wm;
+  }
+
+  function council(text){
+    const a=initAgents();
+    const transcript={};
+    AGENT_NAMES.forEach(n=>{
+      const line={
+        Architect:`Structure: the claim must expose premises, dependencies, and failure boundaries.`,
+        Scientist:`Evidence: the claim needs observable support and falsification criteria.`,
+        Skeptic:`Attack: the weakest point is ambiguity, missing source, or overreach.`,
+        Historian:`Precedent: similar ideas survive when they preserve audit trails.`,
+        Auditor:`Integrity: provenance and contradiction records must remain attached.`,
+        Strategist:`Usefulness: the claim matters only if it changes a decision or action.`,
+        Dreamer:`Possibility: the claim may seed a larger model if allowed to branch.`,
+        Cartographer:`Graph: connect this to nearby entities and competing beliefs.`,
+        Synthesizer:`Integration: merge support, dissent, and utility into a working theory.`,
+        Judge:`Verdict: accept provisionally, preserve dissent, continue scoring.`
+      }[n];
+      transcript[n]=line;
+      a[n].cycles++;
+      a[n].memory.unshift({at:now(),text:text.slice(0,150),line});
+      a[n].memory=a[n].memory.slice(0,25);
+      a[n].trust=Math.max(.35,Math.min(.98,+(a[n].trust+(Math.random()-.45)*.012).toFixed(3)));
+    });
+    save(AGENTS,a);
+    return transcript;
+  }
+
+  function createBelief(text,origin="platform",parents=[]){
+    if(origin==="human" && !validClaim(text)) return null;
+    const list=beliefs();
+    const related=list.map(b=>({id:b.id,score:relation(text,b.text)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,8).map(x=>x.id);
+    const pressure=/not|false|wrong|fail|risk|deny|contradict|unstable/i.test(text);
+    const contradicts=list.filter(b=>related.includes(b.id)&&pressure!==/not|false|wrong|fail|risk|deny|contradict|unstable/i.test(b.text||"")).slice(0,6).map(b=>b.id);
+    const evidence=artifacts().filter(a=>relation(text,a.text)>0).slice(0,8).map(a=>a.id);
+    const transcript=council(text);
+    const belief={
+      id:id("belief"),
+      text,origin,created_at:now(),derived_from:parents,
+      related,supports:related.slice(0,4),contradicts,evidence,
+      confidence:+(.56+Math.random()*.34-contradicts.length*.025+evidence.length*.015).toFixed(4),
+      integrity:+(.68+Math.random()*.24+evidence.length*.02).toFixed(4),
+      evidence_strength:+Math.min(1,evidence.length*.12).toFixed(4),
+      council:transcript,
+      status:contradicts.length?"contested":"active",
+      verdict:contradicts.length?"Accepted under contradiction pressure.":"Accepted into working memory.",
+      genome:{birth:now(),lineage:parents,mutations:0,offspring:[]}
+    };
+    list.unshift(belief);
+    save(BELIEFS,list.slice(0,2000));
+    updateWorldModel(belief);
+    if(window.concordGenesis?.apply) window.concordGenesis.apply();
+    return belief;
+  }
+
+  function makePrediction(){
+    const l=beliefs();
+    const source=l.length?pick(l):createBelief("Systems with memory and contradiction tracking should produce more stable knowledge over time.","seed",[]);
+    const pred={
+      id:id("prediction"),
+      belief:source?.id||null,
+      text:`If "${source?.text||"the system"}" is valid, future related beliefs should increase support and reduce unresolved contradiction pressure.`,
+      created_at:now(),
+      due:"future",
+      status:"open",
+      score:null
+    };
+    const list=predictions(); list.unshift(pred); save(PREDICTIONS,list.slice(0,500));
+    createBelief(`Prediction registered: ${pred.text}`,"prediction",[source?.id].filter(Boolean));
+    return pred;
+  }
+
+  function evolve(){
+    const actions=[
+      ()=>createBelief("A knowledge system becomes more reliable when evidence, contradiction, and lineage are stored as first-class objects.","evolution",[]),
+      ()=>createBelief("Agent reputation should be earned from prediction accuracy, evidence quality, and contradiction handling.","evolution",[]),
+      ()=>createBelief("A world model improves when entities and causal relationships are extracted from every accepted belief.","evolution",[]),
+      ()=>createBelief("Dream hypotheses become useful when the Skeptic and Scientist are forced to attack them.","evolution",[]),
+      makePrediction
+    ];
+    return pick(actions)();
+  }
+
+  function buildArchitectureSnapshot(){
+    return {
+      version:VERSION,
+      updated_at:now(),
+      layers:[
+        "UI Globe",
+        "Council Chamber",
+        "Agent Runtime",
+        "Belief Ledger",
+        "Genesis Growth Scoring",
+        "UPFIS Evidence Vault",
+        "World Model",
+        "Prediction Engine",
+        "Autonomous Evolution Loop"
+      ],
+      counts:{
+        beliefs:beliefs().length,
+        artifacts:artifacts().length,
+        entities:Object.keys(world().entities||{}).length,
+        relations:(world().relations||[]).length,
+        predictions:predictions().length,
+        agents:Object.keys(initAgents()).length
+      }
+    };
+  }
+
+  function render(){
+    const p=ensurePanel();
+    const snap=buildArchitectureSnapshot();
+    const wm=world();
+    const ag=initAgents();
+    const topEntities=Object.values(wm.entities||{}).sort((a,b)=>b.count-a.count).slice(0,10);
+    const topBeliefs=beliefs().slice().sort((a,b)=>((b.genesis_score||0)+(b.evidence_strength||0))-((a.genesis_score||0)+(a.evidence_strength||0))).slice(0,8);
+    p.innerHTML=`
+      <div class="omniGrid">
+        <button onclick="omniCoreV11.evolve()">EVOLVE</button>
+        <button onclick="omniCoreV11.predict()">PREDICT</button>
+        <button onclick="omniCoreV11.auto()">AUTO</button>
+        <button onclick="omniCoreV11.stop()">STOP</button>
+        <button onclick="omniCoreV11.rebuild()">REBUILD</button>
+        <button onclick="omniCoreV11.snapshot()">SNAPSHOT</button>
+      </div>
+
+      <div class="omniTitle">OMNIAUTHOR PLATFORM CORE</div>
+      <div class="omniCard">
+        <span class="omniGood">beliefs ${snap.counts.beliefs}</span>
+        · artifacts ${snap.counts.artifacts}
+        · entities ${snap.counts.entities}
+        · relations ${snap.counts.relations}
+        · predictions ${snap.counts.predictions}
+        · auto ${localStorage.getItem(RUN)==="1"?"on":"off"}
+      </div>
+
+      <div class="omniTitle">AGENT RUNTIME</div>
+      ${Object.values(ag).map(a=>`<div class="omniCard"><span class="omniGold">${esc(a.name)}</span> · trust ${a.trust} · cycles ${a.cycles} · ${esc(a.specialty)}</div>`).join("")}
+
+      <div class="omniTitle">WORLD MODEL · TOP ENTITIES</div>
+      ${topEntities.map(e=>`<div class="omniCard"><span class="omniGood">${esc(e.id)}</span> · count ${e.count} · beliefs ${e.beliefs.length}</div>`).join("")||`<div class="omniCard omniDim">No entities yet.</div>`}
+
+      <div class="omniTitle">HIGHEST VALUE BELIEFS</div>
+      ${topBeliefs.map(b=>`<div class="omniCard">
+        <div class="omniGold">${esc(b.id)} · ${esc(b.status)} · genesis ${b.genesis_score||"pending"} · evidence ${b.evidence_strength||0}</div>
+        <div>${esc(b.text)}</div>
+      </div>`).join("")}
+
+      <div class="omniTitle">PREDICTIONS</div>
+      ${predictions().slice(0,8).map(pr=>`<div class="omniCard"><span class="omniGood">${esc(pr.id)}</span> · ${esc(pr.status)}<br>${esc(pr.text)}</div>`).join("")||`<div class="omniCard omniDim">No predictions yet.</div>`}
+    `;
+  }
+
+  function ensurePanel(){
+    let p=document.getElementById("omniCorePanelV11");
+    if(!p){p=document.createElement("div");p.id="omniCorePanelV11";document.body.appendChild(p)}
+    return p;
+  }
+
+  function button(){
+    if(document.getElementById("omniCoreBtnV11"))return;
+    const b=document.createElement("button");
+    b.id="omniCoreBtnV11"; b.textContent="CORE";
+    b.onclick=()=>{render();const p=ensurePanel();p.style.display=p.style.display==="block"?"none":"block"};
+    document.body.appendChild(b);
+  }
+
+  function rebuild(){
+    const l=beliefs();
+    l.forEach(updateWorldModel);
+    if(window.upfisV10?.link) window.upfisV10.link();
+    if(window.concordGenesis?.apply) window.concordGenesis.apply();
+    render();
+    return buildArchitectureSnapshot();
+  }
+
+  window.omniCoreV11={
+    version:VERSION,
+    create:createBelief,
+    evolve(){const r=evolve();render();return r},
+    predict(){const r=makePrediction();render();return r},
+    auto(){localStorage.setItem(RUN,"1");createBelief("Platform autonomous evolution is enabled across council, evidence, Genesis, world model, and prediction layers.","system",[]);render()},
+    stop(){localStorage.setItem(RUN,"0");createBelief("Platform autonomous evolution is paused by operator command.","system",[]);render()},
+    rebuild,
+    snapshot(){const s=buildArchitectureSnapshot();console.table(s.counts);return s},
+    agents:initAgents,
+    world,
+    predictions,
+    beliefs
+  };
+
+  button(); initAgents(); rebuild();
+  setInterval(button,1000);
+  setInterval(()=>{if(localStorage.getItem(RUN)==="1"){evolve();render();}},75000);
+  console.log("OMNIAUTHOR_PLATFORM_CORE_V11 ready");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
