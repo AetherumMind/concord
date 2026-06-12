@@ -1605,6 +1605,174 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+
+<script id="CONCORD_TRANSCENDENT_CORE_V3">
+(() => {
+  const KEY="omniauthor-belief-ledger-v1";
+  const MODE="concord-transcendent-core-enabled";
+
+  const agents=["Architect","Skeptic","Scientist","Historian","Auditor","Strategist","Dreamer","Judge","Cartographer"];
+
+  function load(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return[]}}
+  function save(x){localStorage.setItem(KEY,JSON.stringify(x.slice(0,777)))}
+  function uid(p="node"){return p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
+  function pick(a){return a[Math.floor(Math.random()*a.length)]}
+  function words(t){return String(t).toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>4)}
+  function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+  function scoreRelation(a,b){
+    const aw=words(a), bt=String(b).toLowerCase();
+    return aw.filter(w=>bt.includes(w)).length;
+  }
+
+  function detectContradictions(text,items){
+    const neg=/\b(not|never|false|cannot|fail|opposite|contradict|deny|wrong|unstable)\b/i.test(text);
+    return items.filter(b=>{
+      const rel=scoreRelation(text,b.text||"");
+      const bneg=/\b(not|never|false|cannot|fail|opposite|contradict|deny|wrong|unstable)\b/i.test(b.text||"");
+      return rel>0 && neg!==bneg;
+    }).slice(0,5).map(b=>b.id);
+  }
+
+  function council(text,parents=[]){
+    const map={};
+    for(const a of agents){
+      map[a]=`${a}: ${a==="Skeptic"?"challenge":a==="Scientist"?"test":a==="Auditor"?"verify":a==="Cartographer"?"connect":"interpret"} "${text}"`;
+    }
+    return map;
+  }
+
+  function create(text,origin="transcendent",parents=[]){
+    const items=load();
+    const related=items.map(b=>({id:b.id,score:scoreRelation(text,b.text||"")})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,7).map(x=>x.id);
+    const contradicts=detectContradictions(text,items);
+    const affirm=Math.max(1,Math.floor(3+Math.random()*4)-contradicts.length);
+    const dissent=Math.min(5,contradicts.length+Math.floor(Math.random()*2));
+    const preserve=Math.max(0,agents.length-affirm-dissent);
+    const confidence=+(0.48+Math.random()*0.42-(contradicts.length*.04)).toFixed(4);
+    const integrity=+(0.60+Math.random()*0.35+(related.length*.005)).toFixed(4);
+
+    const node={
+      id:uid(origin==="human"?"human":"auto"),
+      text,
+      created_at:new Date().toISOString(),
+      origin,
+      status:contradicts.length?"contested":"accepted",
+      confidence,
+      integrity,
+      council:council(text,parents),
+      tally:{affirm,dissent,preserve},
+      verdict:`Council synthesis: ${affirm}/${agents.length} affirm, ${dissent} dissent, ${preserve} preserved.`,
+      derived_from:parents,
+      related,
+      supports:related.slice(0,3),
+      contradicts,
+      generation:parents.length?1+Math.max(0,...items.filter(x=>parents.includes(x.id)).map(x=>x.generation||0)):0
+    };
+    items.unshift(node);
+    save(items);
+    render(node);
+    return node;
+  }
+
+  function synthesize(){
+    const items=load();
+    if(items.length<2) return create("A living system begins by remembering its own thoughts.","autonomous",[]);
+    const a=pick(items), b=pick(items);
+    const text=`Synthesize: "${a.text}" with "${b.text}" into a higher-order principle.`;
+    return create(text,"recursive-synthesis",[a.id,b.id]);
+  }
+
+  function evolveWeak(){
+    const items=load();
+    const weak=items.find(x=>(x.confidence||1)<0.62 || (x.contradicts||[]).length);
+    if(!weak) return synthesize();
+    return create(`Revise contested belief: "${weak.text}" while preserving its useful structure.`,"evolution",[weak.id]);
+  }
+
+  function dream(){
+    const seeds=[
+      "What does this system not yet know that it should know?",
+      "Which belief would become dangerous if accepted too quickly?",
+      "Which contradiction is secretly a doorway?",
+      "What pattern repeats across the ledger?",
+      "What should be remembered even if confidence falls?"
+    ];
+    return create(pick(seeds),"dream-loop",load().slice(0,3).map(x=>x.id));
+  }
+
+  function render(b){
+    const cap=document.querySelector(".a");
+    if(cap) cap.innerHTML=`${esc(b.text)}<br><span style="font-size:12px;color:#aab6d4">${esc(b.verdict)} · integrity ${b.integrity} · gen ${b.generation}</span>`;
+    const mode=document.querySelector("#modeTag");
+    if(mode) mode.textContent="council: evolving";
+    drawPanel();
+  }
+
+  function drawPanel(){
+    let panel=document.getElementById("transcendentLedgerV3");
+    if(!panel){
+      panel=document.createElement("div");
+      panel.id="transcendentLedgerV3";
+      panel.style.cssText="position:fixed;left:12px;right:12px;bottom:86px;max-height:42vh;overflow:auto;background:rgba(3,5,14,.92);border:1px solid rgba(232,185,106,.45);border-radius:16px;padding:14px;z-index:99999;color:#e8e4d9;font-family:monospace;font-size:11px;display:none;box-shadow:0 0 40px rgba(0,229,204,.12)";
+      document.body.appendChild(panel);
+    }
+    const items=load().slice(0,20);
+    panel.innerHTML=`<div style="color:#e8b96a;letter-spacing:.25em;margin-bottom:10px">TRANSCENDENT LEDGER</div>`+
+      items.map(x=>`<div style="border-bottom:1px solid rgba(255,255,255,.08);padding:9px 0">
+      <div style="color:${(x.contradicts||[]).length?'#ff6b35':'#00e5cc'}">${esc(x.id)} · ${esc(x.status)} · gen ${x.generation||0}</div>
+      <div style="font-size:12px">${esc(x.text||"")}</div>
+      <div style="color:#aab6d4">${esc(x.verdict||"")}</div>
+      <div style="color:#5e6a8e">related ${(x.related||[]).length} · contradicts ${(x.contradicts||[]).length} · origin ${esc(x.origin||"")}</div>
+      </div>`).join("");
+  }
+
+  function controls(){
+    if(document.getElementById("transcendentControlsV3"))return;
+    const box=document.createElement("div");
+    box.id="transcendentControlsV3";
+    box.style.cssText="position:fixed;left:12px;top:120px;z-index:99999;display:flex;flex-direction:column;gap:7px";
+    const mk=(t,fn)=>{const b=document.createElement("button");b.textContent=t;b.style.cssText="background:rgba(6,10,26,.75);color:#e8b96a;border:1px solid rgba(232,185,106,.35);border-radius:10px;padding:8px 11px;font-family:monospace;font-size:9px;letter-spacing:.15em";b.onclick=fn;return b};
+    box.appendChild(mk("EVOLVE",()=>evolveWeak()));
+    box.appendChild(mk("DREAM",()=>dream()));
+    box.appendChild(mk("SYNTH",()=>synthesize()));
+    box.appendChild(mk("LEDGER",()=>{drawPanel();const p=document.getElementById("transcendentLedgerV3");p.style.display=p.style.display==="none"?"block":"none"}));
+    document.body.appendChild(box);
+  }
+
+  function hook(){
+    controls();
+    const btn=[...document.querySelectorAll("button")].find(b=>/deliberate/i.test(b.textContent||""));
+    const input=document.querySelector("input,textarea");
+    if(btn&&input&&!btn.dataset.v3){
+      btn.dataset.v3="1";
+      btn.addEventListener("click",()=>{
+        const t=(input.value||"").trim();
+        if(!t)return;
+        input.value="";
+        create(t,"human",[]);
+      },true);
+    }
+  }
+
+  window.concordTranscendent={
+    create,
+    synthesize,
+    evolve:evolveWeak,
+    dream,
+    ledger:load,
+    start(){localStorage.setItem(MODE,"1");console.log("Transcendent Core enabled")},
+    stop(){localStorage.setItem(MODE,"0");console.log("Transcendent Core disabled")},
+    status(){return{enabled:localStorage.getItem(MODE)==="1",ledger_size:load().length}}
+  };
+
+  setInterval(hook,1200);
+  setInterval(()=>{if(localStorage.getItem(MODE)==="1") pick([synthesize,evolveWeak,dream])()},150000);
+  hook();
+  console.log("CONCORD_TRANSCENDENT_CORE_V3 ready");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
