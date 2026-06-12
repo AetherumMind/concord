@@ -1250,6 +1250,115 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+
+<script id="CONCORD_IDLE_AUTOGENESIS_V1">
+(() => {
+  const KEY = "omniauthor-belief-ledger-v1";
+  const AUTO_KEY = "omniauthor-idle-autogenesis-enabled";
+
+  const seeds = [
+    "A belief becomes stronger when it survives contradiction.",
+    "A system that preserves dissent becomes more trustworthy over time.",
+    "Reasoning without memory collapses into repetition.",
+    "Contradiction is not failure; it is unresolved structure.",
+    "A council becomes intelligent when its members disagree productively.",
+    "Truth requires provenance, not just confidence.",
+    "A living knowledge system must revise itself without erasing its past."
+  ];
+
+  const agents = ["Architect", "Skeptic", "Scientist", "Historian", "Auditor", "Strategist"];
+
+  function load(){
+    try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
+    catch { return []; }
+  }
+
+  function save(items){
+    localStorage.setItem(KEY, JSON.stringify(items));
+  }
+
+  function pick(arr){
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function synthesizeFromLedger(items){
+    if (!items.length) return pick(seeds);
+
+    const a = pick(items);
+    const b = pick(items);
+
+    if (a.id !== b.id) {
+      return `If "${a.text}" and "${b.text}" are both considered, what hidden relationship connects them?`;
+    }
+
+    return `Re-examine this claim from another angle: "${a.text}"`;
+  }
+
+  function createIdleBelief(){
+    const items = load();
+    const text = synthesizeFromLedger(items);
+    const lead = pick(agents);
+
+    const belief = {
+      id: "auto_" + Date.now().toString(36),
+      text,
+      created_at: new Date().toISOString(),
+      confidence: +(0.55 + Math.random() * 0.32).toFixed(4),
+      integrity: +(0.60 + Math.random() * 0.28).toFixed(4),
+      origin: "idle-autogenesis",
+      lead,
+      council: {
+        affirm: Math.floor(2 + Math.random() * 4),
+        dissent: Math.floor(Math.random() * 3),
+        preserve: Math.floor(1 + Math.random() * 3),
+        agents
+      },
+      verdict: `${lead} generated an idle proposition for Council review.`,
+      status: "unreviewed"
+    };
+
+    items.unshift(belief);
+    save(items.slice(0, 250));
+
+    console.log("Idle Council generated:", belief);
+
+    const caption = document.querySelector(".a");
+    if (caption) {
+      caption.innerHTML =
+        `${belief.text}<br><span style="font-size:12px;color:#aab6d4">Idle Council generated claim ${belief.id}</span>`;
+    }
+
+    return belief;
+  }
+
+  window.concordIdle = {
+    start(){
+      localStorage.setItem(AUTO_KEY, "1");
+      console.log("Idle autogenesis enabled.");
+    },
+    stop(){
+      localStorage.setItem(AUTO_KEY, "0");
+      console.log("Idle autogenesis disabled.");
+    },
+    tick: createIdleBelief,
+    status(){
+      return {
+        enabled: localStorage.getItem(AUTO_KEY) === "1",
+        ledger_size: load().length
+      };
+    }
+  };
+
+  setInterval(() => {
+    if (localStorage.getItem(AUTO_KEY) === "1") {
+      createIdleBelief();
+    }
+  }, 90000);
+
+  console.log("CONCORD_IDLE_AUTOGENESIS_V1 ready. Run concordIdle.start() to enable.");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
