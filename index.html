@@ -1359,6 +1359,252 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+
+<script id="CONCORD_AUTONOMOUS_COUNCIL_V2">
+(() => {
+  const KEY = "omniauthor-belief-ledger-v1";
+  const AUTO_KEY = "omniauthor-autonomous-council-enabled";
+
+  const agents = {
+    Architect: "systems, structure, scaffolding, implementation",
+    Skeptic: "failure modes, doubt, contradiction, weak assumptions",
+    Scientist: "evidence, testing, measurement, falsifiability",
+    Historian: "precedent, pattern, lineage, prior examples",
+    Auditor: "consistency, rules, provenance, integrity",
+    Strategist: "usefulness, timing, leverage, next move"
+  };
+
+  const seedClaims = [
+    "Reasoning without memory collapses into repetition.",
+    "A belief becomes stronger when it survives contradiction.",
+    "A council becomes intelligent when its members disagree productively.",
+    "Truth requires provenance, not just confidence.",
+    "A living knowledge system must revise itself without erasing its past.",
+    "Contradiction is not failure; it is unresolved structure.",
+    "A system that preserves dissent becomes more trustworthy over time."
+  ];
+
+  function load(){
+    try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
+    catch { return []; }
+  }
+
+  function save(items){
+    localStorage.setItem(KEY, JSON.stringify(items.slice(0, 500)));
+  }
+
+  function pick(arr){
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function id(prefix="claim"){
+    return prefix + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7);
+  }
+
+  function agentResponse(agent, text){
+    const lens = agents[agent];
+    const templates = [
+      `${agent} examines "${text}" through ${lens}.`,
+      `${agent} preserves the useful structure but marks uncertainty around "${text}".`,
+      `${agent} identifies this as a candidate belief requiring future evidence: "${text}".`,
+      `${agent} links this proposition to the broader map: "${text}".`
+    ];
+    return pick(templates);
+  }
+
+  function relate(newBelief, items){
+    const words = newBelief.text.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 4);
+    const related = [];
+
+    for (const b of items) {
+      if (!b.text) continue;
+      const t = b.text.toLowerCase();
+      const score = words.filter(w => t.includes(w)).length;
+      if (score > 0) related.push({ id: b.id, score });
+    }
+
+    related.sort((a,b) => b.score - a.score);
+    newBelief.related = related.slice(0,5).map(x => x.id);
+    newBelief.supports = [];
+    newBelief.contradicts = [];
+
+    if (/not|false|fail|contradict|doubt|weak|risk/i.test(newBelief.text)) {
+      newBelief.status = "contested";
+    }
+
+    return newBelief;
+  }
+
+  function synthesize(items){
+    if (!items.length) return pick(seedClaims);
+
+    const a = pick(items);
+    const b = pick(items);
+
+    if (a && b && a.id !== b.id) {
+      return `Synthesize relationship between "${a.text}" and "${b.text}".`;
+    }
+
+    return `Reconsider this belief under pressure: "${a.text || pick(seedClaims)}".`;
+  }
+
+  function deliberate(text, origin="autonomous"){
+    const items = load();
+    const council = {};
+    Object.keys(agents).forEach(a => council[a] = agentResponse(a, text));
+
+    const affirm = Math.floor(2 + Math.random() * 4);
+    const dissent = Math.floor(Math.random() * 3);
+    const preserve = Math.max(0, 6 - affirm - dissent);
+
+    let belief = {
+      id: id(origin === "human" ? "human" : "auto"),
+      text,
+      created_at: new Date().toISOString(),
+      origin,
+      status: dissent > 1 ? "contested" : "accepted",
+      confidence: +(0.52 + Math.random() * 0.38).toFixed(4),
+      integrity: +(0.60 + Math.random() * 0.35).toFixed(4),
+      council,
+      tally: { affirm, dissent, preserve },
+      verdict: `Council verdict: ${affirm}/6 affirm, ${dissent} dissent, ${preserve} preserved.`,
+      derived_from: items.slice(0,2).map(x => x.id).filter(Boolean),
+      related: [],
+      supports: [],
+      contradicts: []
+    };
+
+    belief = relate(belief, items);
+    items.unshift(belief);
+    save(items);
+
+    renderBelief(belief);
+    return belief;
+  }
+
+  function evolve(){
+    const items = load();
+    const text = synthesize(items);
+    return deliberate(text, "autonomous");
+  }
+
+  function renderBelief(belief){
+    const caption = document.querySelector(".a");
+    if (caption) {
+      caption.innerHTML =
+        `${escapeHtml(belief.text)}<br>` +
+        `<span style="font-size:12px;color:#aab6d4">${belief.verdict} · integrity ${belief.integrity}</span>`;
+    }
+
+    const mode = document.querySelector("#modeTag");
+    if (mode) mode.textContent = "council: growing";
+
+    let panel = document.getElementById("ledgerPanelV2");
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.id = "ledgerPanelV2";
+      panel.style.cssText = "position:fixed;left:14px;right:14px;bottom:92px;max-height:34vh;overflow:auto;background:rgba(5,8,20,.88);border:1px solid rgba(201,168,76,.35);border-radius:14px;padding:12px;z-index:9999;color:#e8e4d9;font-family:monospace;font-size:11px;display:none;";
+      document.body.appendChild(panel);
+    }
+
+    panel.innerHTML = ledgerHtml();
+  }
+
+  function ledgerHtml(){
+    const items = load().slice(0,12);
+    if (!items.length) return "Ledger empty.";
+
+    return items.map(b =>
+      `<div style="border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0">` +
+      `<div style="color:#e8b96a">${escapeHtml(b.id)} · ${escapeHtml(b.status || "unknown")}</div>` +
+      `<div>${escapeHtml(b.text || "")}</div>` +
+      `<div style="color:#aab6d4">${escapeHtml(b.verdict || "")}</div>` +
+      `<div style="color:#5e6a8e">related: ${(b.related || []).length} · origin: ${escapeHtml(b.origin || "local")}</div>` +
+      `</div>`
+    ).join("");
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  function hookInput(){
+    const btns = [...document.querySelectorAll("button")];
+    const deliberateBtn = btns.find(b => /deliberate/i.test(b.textContent || ""));
+    const input = document.querySelector("input, textarea");
+
+    if (deliberateBtn && input && !deliberateBtn.dataset.v2hooked) {
+      deliberateBtn.dataset.v2hooked = "1";
+      deliberateBtn.addEventListener("click", () => {
+        const text = (input.value || "").trim();
+        if (!text) return;
+        input.value = "";
+        deliberate(text, "human");
+      }, true);
+    }
+  }
+
+  function addLedgerButton(){
+    if (document.getElementById("ledgerBtnV2")) return;
+
+    const b = document.createElement("button");
+    b.id = "ledgerBtnV2";
+    b.textContent = "LEDGER";
+    b.style.cssText = "position:fixed;right:22px;top:250px;z-index:9999;background:rgba(6,10,26,.72);color:#e8b96a;border:1px solid rgba(201,168,76,.35);border-radius:12px;padding:10px 16px;letter-spacing:.22em;font-family:monospace;font-size:10px;";
+    b.onclick = () => {
+      let p = document.getElementById("ledgerPanelV2");
+      if (!p) {
+        renderBelief({ text:"Ledger initialized.", verdict:"No belief selected.", integrity:0 });
+        p = document.getElementById("ledgerPanelV2");
+      }
+      p.innerHTML = ledgerHtml();
+      p.style.display = p.style.display === "none" ? "block" : "none";
+    };
+    document.body.appendChild(b);
+  }
+
+  window.concordCouncil = {
+    deliberate,
+    evolve,
+    start(){
+      localStorage.setItem(AUTO_KEY, "1");
+      console.log("Autonomous Council enabled.");
+    },
+    stop(){
+      localStorage.setItem(AUTO_KEY, "0");
+      console.log("Autonomous Council disabled.");
+    },
+    ledger: load,
+    clear(){
+      save([]);
+      console.log("Ledger cleared.");
+    },
+    status(){
+      return {
+        enabled: localStorage.getItem(AUTO_KEY) === "1",
+        ledger_size: load().length
+      };
+    }
+  };
+
+  setInterval(() => {
+    hookInput();
+    addLedgerButton();
+  }, 1500);
+
+  setInterval(() => {
+    if (localStorage.getItem(AUTO_KEY) === "1") evolve();
+  }, 120000);
+
+  hookInput();
+  addLedgerButton();
+
+  console.log("CONCORD_AUTONOMOUS_COUNCIL_V2 ready. Use concordCouncil.start().");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
