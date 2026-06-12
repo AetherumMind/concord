@@ -1957,6 +1957,178 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+
+<style id="CONCORD_COMMAND_CENTER_V5_STYLE">
+#omegaControls,#transcendentControlsV3,#ledgerBtnV2{display:none!important}
+#concordDock{
+  position:fixed;left:10px;right:10px;top:138px;z-index:999999;
+  display:flex;gap:6px;overflow-x:auto;padding:6px;
+  background:rgba(3,5,14,.58);border:1px solid rgba(232,185,106,.25);
+  border-radius:14px;backdrop-filter:blur(10px)
+}
+#concordDock button{
+  flex:0 0 auto;background:rgba(8,12,28,.82);color:#e8b96a;
+  border:1px solid rgba(232,185,106,.35);border-radius:10px;
+  padding:8px 11px;font-family:monospace;font-size:9px;letter-spacing:.15em
+}
+.concordPanel{
+  position:fixed;left:10px;right:10px;bottom:82px;z-index:999998;
+  max-height:46vh;overflow:auto;display:none;background:rgba(2,4,14,.94);
+  border:1px solid rgba(232,185,106,.45);border-radius:18px;padding:14px;
+  color:#e8e4d9;font-family:monospace;font-size:11px;
+  box-shadow:0 0 44px rgba(0,229,204,.15);backdrop-filter:blur(12px)
+}
+.concordTitle{color:#e8b96a;letter-spacing:.25em;margin-bottom:10px}
+.concordCard{border-bottom:1px solid rgba(255,255,255,.08);padding:9px 0}
+.concordGood{color:#00e5cc}.concordWarn{color:#ff6b35}.concordDim{color:#7f8aa8}
+#taskPanel,#taskBox,.taskPanel,.task-engine{max-width:92vw!important}
+@media(max-width:600px){
+  #concordDock{top:128px}
+  .concordPanel{font-size:10px;max-height:43vh}
+}
+</style>
+
+<script id="CONCORD_COMMAND_CENTER_V5">
+(() => {
+  const KEY="omniauthor-belief-ledger-v1";
+  const RUN="concord-command-center-autonomous";
+  const AGENTS=["Architect","Skeptic","Scientist","Historian","Auditor","Strategist","Cartographer","Dreamer","Judge"];
+
+  function load(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return[]}}
+  function save(x){localStorage.setItem(KEY,JSON.stringify(x.slice(0,1200)))}
+  function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+  function pick(a){return a[Math.floor(Math.random()*a.length)]}
+  function id(p){return p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,7)}
+  function words(t){return String(t).toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>4)}
+  function relation(a,b){const aw=words(a),bt=String(b||"").toLowerCase();return aw.filter(w=>bt.includes(w)).length}
+
+  function agentLine(agent,text){
+    const map={
+      Architect:"maps structure and implementation path",
+      Skeptic:"attacks weak assumptions and failure modes",
+      Scientist:"asks what evidence would verify or falsify it",
+      Historian:"searches precedent and repeating pattern",
+      Auditor:"checks consistency, provenance, and ledger integrity",
+      Strategist:"extracts leverage and next useful action",
+      Cartographer:"links this belief to neighboring nodes",
+      Dreamer:"imagines the hidden possibility",
+      Judge:"renders provisional status"
+    };
+    return `${agent}: ${map[agent]} — "${text}"`;
+  }
+
+  function create(text,origin="human",parents=[]){
+    const items=load();
+    const related=items.map(x=>({id:x.id,score:relation(text,x.text)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,10).map(x=>x.id);
+    const neg=/not|never|false|wrong|fail|contradict|unstable|deny|risk|danger/i.test(text);
+    const contradicts=items.filter(x=>relation(text,x.text)>0 && neg!==/not|never|false|wrong|fail|contradict|unstable|deny|risk|danger/i.test(x.text||"")).slice(0,6).map(x=>x.id);
+    const gen=parents.length?1+Math.max(0,...items.filter(x=>parents.includes(x.id)).map(x=>x.generation||0)):0;
+
+    const council={}; AGENTS.forEach(a=>council[a]=agentLine(a,text));
+
+    const node={
+      id:id(origin==="human"?"human":"auto"),
+      text,origin,created_at:new Date().toISOString(),generation:gen,
+      status:contradicts.length?"contested":"active",
+      confidence:+(0.52+Math.random()*.38-contradicts.length*.035).toFixed(4),
+      integrity:+(0.62+Math.random()*.33+related.length*.004).toFixed(4),
+      council,
+      reputation:Object.fromEntries(AGENTS.map((a,i)=>[a, +(0.62+Math.random()*.32).toFixed(3)])),
+      tally:{affirm:Math.max(1,6-contradicts.length),dissent:contradicts.length,preserve:Math.floor(1+Math.random()*3)},
+      derived_from:parents,related,supports:related.slice(0,4),contradicts,
+      questions:[`What would disprove this?`,`What evidence strengthens this?`,`What assumption hides beneath this?`],
+      verdict:contradicts.length?"Accepted under contradiction watch.":"Accepted into active working memory."
+    };
+
+    items.unshift(node); save(items); render(node); return node;
+  }
+
+  function synth(){
+    const l=load(); if(l.length<2)return create("A self-growing council begins by remembering and revising itself.","seed",[]);
+    const a=pick(l),b=pick(l); return create(`Synthesize "${a.text}" with "${b.text}" into a higher-order principle.`,"synthesis",[a.id,b.id]);
+  }
+  function challenge(){const l=load(); if(!l.length)return synth(); const a=pick(l); return create(`Challenge this belief until only its strongest structure remains: "${a.text}".`,"challenge",[a.id])}
+  function predict(){const l=load(); if(!l.length)return synth(); const a=pick(l); return create(`Prediction: if "${a.text}" is true, future observations should reveal a repeatable pattern.`,"prediction",[a.id])}
+  function dream(){return create(pick(["Which contradiction is a doorway?","What does this system not yet know?","Which belief should die for honesty?","What pattern repeats across the ledger?"]),"dream",load().slice(0,3).map(x=>x.id))}
+  function evolve(){return pick([synth,challenge,predict,dream])()}
+
+  function ensureUI(){
+    if(!document.getElementById("concordDock")){
+      const dock=document.createElement("div"); dock.id="concordDock";
+      const buttons=[
+        ["COUNCIL",()=>show("council")],["LEDGER",()=>show("ledger")],["GRAPH",()=>show("graph")],
+        ["SYNTH",()=>synth()],["CHALLENGE",()=>challenge()],["PREDICT",()=>predict()],
+        ["DREAM",()=>dream()],["AUTO",()=>{localStorage.setItem(RUN,"1");create("Autonomous evolution enabled.","system",[])}],
+        ["STOP",()=>{localStorage.setItem(RUN,"0");create("Autonomous evolution paused.","system",[])}]
+      ];
+      buttons.forEach(([t,f])=>{const b=document.createElement("button");b.textContent=t;b.onclick=f;dock.appendChild(b)});
+      document.body.appendChild(dock);
+    }
+    ["council","ledger","graph"].forEach(n=>{
+      if(!document.getElementById("cc_"+n)){
+        const p=document.createElement("div");p.id="cc_"+n;p.className="concordPanel";document.body.appendChild(p);
+      }
+    });
+  }
+
+  function show(name){
+    ensureUI();
+    ["council","ledger","graph"].forEach(n=>document.getElementById("cc_"+n).style.display=n===name&&document.getElementById("cc_"+n).style.display==="none"?"block":"none");
+    draw();
+  }
+
+  function draw(){
+    const l=load(), latest=l[0];
+    const ledger=document.getElementById("cc_ledger");
+    const council=document.getElementById("cc_council");
+    const graph=document.getElementById("cc_graph");
+
+    if(ledger) ledger.innerHTML=`<div class="concordTitle">LIVING LEDGER · ${l.length}</div>`+
+      l.slice(0,35).map(x=>`<div class="concordCard">
+        <div class="${(x.contradicts||[]).length?'concordWarn':'concordGood'}">${esc(x.id)} · ${esc(x.origin)} · gen ${x.generation||0}</div>
+        <div>${esc(x.text)}</div><div class="concordDim">${esc(x.verdict)} · confidence ${x.confidence} · integrity ${x.integrity}</div>
+        <div class="concordDim">related ${(x.related||[]).length} · contradicts ${(x.contradicts||[]).length}</div>
+      </div>`).join("");
+
+    if(council) council.innerHTML=`<div class="concordTitle">COUNCIL CHAMBER</div>`+
+      (latest?Object.entries(latest.council||{}).map(([a,v])=>`<div class="concordCard"><div class="concordGood">${esc(a)} · trust ${esc(latest.reputation?.[a]??"")}</div><div>${esc(v)}</div></div>`).join(""):"No council activity yet.");
+
+    if(graph) graph.innerHTML=`<div class="concordTitle">KNOWLEDGE GRAPH</div>`+
+      l.slice(0,25).map(x=>`<div class="concordCard">
+        <div class="concordGood">${esc(x.id)}</div>
+        <div>${esc(x.text)}</div>
+        <div class="concordDim">supports: ${(x.supports||[]).join(", ")||"—"}</div>
+        <div class="concordDim">contradicts: ${(x.contradicts||[]).join(", ")||"—"}</div>
+        <div class="concordDim">derived from: ${(x.derived_from||[]).join(", ")||"—"}</div>
+      </div>`).join("");
+  }
+
+  function render(b){
+    const cap=document.querySelector(".a");
+    if(cap)cap.innerHTML=`${esc(b.text)}<br><span style="font-size:12px;color:#aab6d4">${esc(b.verdict)} · gen ${b.generation} · integrity ${b.integrity}</span>`;
+    const mode=document.querySelector("#modeTag"); if(mode)mode.textContent=localStorage.getItem(RUN)==="1"?"omega: autonomous":"omega: evolving";
+    draw();
+  }
+
+  function hook(){
+    ensureUI();
+    const btn=[...document.querySelectorAll("button")].find(b=>/^DELIBERATE$/i.test((b.textContent||"").trim()));
+    const input=document.querySelector("input,textarea");
+    if(btn&&input&&!btn.dataset.commandCenter){
+      btn.dataset.commandCenter="1";
+      btn.addEventListener("click",()=>{const t=(input.value||"").trim();if(!t)return;input.value="";create(t,"human",[])},true);
+    }
+  }
+
+  window.concordCommand={create,synth,challenge,predict,dream,evolve,ledger:load,start(){localStorage.setItem(RUN,"1")},stop(){localStorage.setItem(RUN,"0")},status(){return{enabled:localStorage.getItem(RUN)==="1",ledger_size:load().length}}};
+
+  setInterval(hook,1000);
+  setInterval(()=>{if(localStorage.getItem(RUN)==="1")evolve()},60000);
+  hook();
+  console.log("CONCORD_COMMAND_CENTER_V5 ready");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
