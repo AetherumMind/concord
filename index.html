@@ -3321,6 +3321,286 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+
+<style id="OMNIAUTHOR_MULTIMODAL_INTERFACE_V13_STYLE">
+#omniInterfaceBtnV13{
+  position:fixed;right:16px;top:344px;z-index:999999;
+  background:rgba(4,14,28,.94);color:#00e5cc;
+  border:1px solid rgba(0,229,204,.5);border-radius:12px;
+  padding:10px 12px;font-family:monospace;font-size:9px;
+  letter-spacing:.14em;backdrop-filter:blur(12px)
+}
+#omniInterfacePanelV13{
+  position:fixed;left:10px;right:10px;bottom:82px;z-index:999999;
+  max-height:64vh;overflow:auto;display:none;
+  background:rgba(2,4,14,.97);color:#e8e4d9;
+  border:1px solid rgba(0,229,204,.48);border-radius:18px;
+  padding:14px;font-family:monospace;font-size:11px;
+  box-shadow:0 0 55px rgba(0,229,204,.15);backdrop-filter:blur(14px)
+}
+.miGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.miGrid button,.miGrid label{
+  background:rgba(8,12,28,.9);color:#00e5cc;
+  border:1px solid rgba(0,229,204,.38);border-radius:12px;
+  padding:10px 6px;font-family:monospace;font-size:9px;letter-spacing:.12em;text-align:center
+}
+.miTitle{color:#00e5cc;letter-spacing:.22em;margin:12px 0 8px}
+.miCard{border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0}
+.miDim{color:#8b96b8}.miGold{color:#ffd98f}.miWarn{color:#ff6b35}
+#miChatInput{
+  width:100%;min-height:70px;background:rgba(8,12,28,.9);color:#e8e4d9;
+  border:1px solid rgba(0,229,204,.35);border-radius:12px;
+  padding:10px;font-family:monospace;font-size:12px;margin:8px 0
+}
+.miPreview img,.miPreview video{max-width:100%;border-radius:12px;margin-top:8px}
+.miPreview audio{width:100%;margin-top:8px}
+</style>
+
+<script id="OMNIAUTHOR_MULTIMODAL_INTERFACE_V13">
+(() => {
+  const VERSION="v13";
+  const CHAT="omniauthor-conversation-v13";
+  const TASKS="omniauthor-tasks-v13";
+  const MEDIA="omniauthor-media-artifacts-v13";
+  const EXPORTS="omniauthor-generated-artifacts-v13";
+
+  function load(k,d=[]){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}}
+  function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+  function id(p){return p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
+  function now(){return new Date().toISOString()}
+  function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+  function addChat(role,text,meta={}){
+    const list=load(CHAT,[]);
+    const msg={id:id("msg"),role,text,meta,created_at:now()};
+    list.unshift(msg);
+    save(CHAT,list.slice(0,500));
+    return msg;
+  }
+
+  function classifyTask(text){
+    const s=String(text||"").trim();
+    if(/^task:/i.test(s)||/\b(remind|todo|fix|build|create|write|review|deploy|test|push)\b/i.test(s)){
+      return "task";
+    }
+    if(/\b(is|are|becomes|causes|supports|contradicts|requires|means|should|will|can|must)\b/i.test(s)){
+      return "belief";
+    }
+    return "conversation";
+  }
+
+  function performLogic(text){
+    const kind=classifyTask(text);
+    addChat("user",text,{kind});
+
+    if(kind==="task"){
+      const tasks=load(TASKS,[]);
+      const task={id:id("task"),text:text.replace(/^task:\s*/i,""),status:"open",created_at:now(),steps:[
+        "Clarify objective",
+        "Identify required inputs",
+        "Execute smallest next action",
+        "Verify result",
+        "Record artifact"
+      ]};
+      tasks.unshift(task); save(TASKS,tasks.slice(0,300));
+      addChat("system",`Task created: ${task.text}`,{task_id:task.id});
+      speak(`Task created.`);
+      return task;
+    }
+
+    if(kind==="belief"){
+      if(window.omniMathGovV12?.review) window.omniMathGovV12.review();
+      if(window.omniCoreV11?.create) window.omniCoreV11.create(text,"conversation",[]);
+      else if(window.concordV8?.make) window.concordV8.make(text,"conversation",[]);
+      addChat("system","Belief routed through council, ledger, Genesis, UPFIS, and math governance layers.",{kind});
+      speak("Belief routed through governance.");
+      return {kind:"belief"};
+    }
+
+    addChat("system","Conversation recorded. Add 'task:' to create a task, or make a full claim to enter the belief ledger.",{kind});
+    speak("Conversation recorded.");
+    return {kind:"conversation"};
+  }
+
+  async function handleFiles(files){
+    const existing=load(MEDIA,[]);
+    for(const f of files){
+      const data=await readFile(f);
+      existing.unshift({
+        id:id("media"),
+        name:f.name,
+        type:f.type||"unknown",
+        size:f.size,
+        created_at:now(),
+        data,
+        artifact_type:f.type.startsWith("image/")?"image":f.type.startsWith("video/")?"video":f.type.startsWith("audio/")?"audio":"file",
+        notes:"Local browser artifact. For real server-side analysis, connect backend."
+      });
+      if(window.upfisV10?.addArtifact) window.upfisV10.addArtifact(`Media artifact uploaded: ${f.name} (${f.type||"unknown"})`,"multimodal-interface","media");
+    }
+    save(MEDIA,existing.slice(0,80));
+    render();
+  }
+
+  function readFile(file){
+    return new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result);
+      r.onerror=rej;
+      r.readAsDataURL(file);
+    });
+  }
+
+  function speak(text){
+    try{
+      if(!("speechSynthesis" in window))return;
+      const u=new SpeechSynthesisUtterance(String(text).slice(0,220));
+      u.rate=.95;u.pitch=.85;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    }catch{}
+  }
+
+  function listen(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){alert("Speech recognition not supported on this browser.");return}
+    const rec=new SR();
+    rec.lang="en-US";rec.interimResults=false;
+    rec.onresult=e=>{
+      const text=e.results[0][0].transcript;
+      const input=document.getElementById("miChatInput");
+      if(input)input.value=text;
+      performLogic(text);
+      render();
+    };
+    rec.start();
+  }
+
+  function exportJSON(){
+    const payload={
+      version:VERSION,
+      exported_at:now(),
+      conversation:load(CHAT,[]),
+      tasks:load(TASKS,[]),
+      media:load(MEDIA,[]).map(x=>({...x,data:x.data?.slice(0,80)+"..."})),
+      beliefs:JSON.parse(localStorage.getItem("omniauthor-belief-ledger-v1")||"[]"),
+      math_governance:window.omniMathGovV12?.report?.()||null,
+      platform:window.omniCoreV11?.snapshot?.()||null
+    };
+    download("omniauthor_artifact_"+Date.now()+".json",JSON.stringify(payload,null,2),"application/json");
+    const ex=load(EXPORTS,[]);
+    ex.unshift({id:id("export"),type:"json",created_at:now(),name:"OmniAuthor full artifact export"});
+    save(EXPORTS,ex.slice(0,100));
+  }
+
+  function exportReport(){
+    const chats=load(CHAT,[]).slice(0,30);
+    const tasks=load(TASKS,[]).slice(0,30);
+    const beliefs=JSON.parse(localStorage.getItem("omniauthor-belief-ledger-v1")||"[]").slice(0,30);
+    const html=`<!doctype html><html><head><meta charset="utf-8"><title>OmniAuthor Report</title>
+    <style>body{background:#060814;color:#e8e4d9;font-family:monospace;padding:24px}h1,h2{color:#00e5cc}.card{border-bottom:1px solid #333;padding:10px 0}</style>
+    </head><body><h1>OmniAuthor Artifact Report</h1><p>${now()}</p>
+    <h2>Conversation</h2>${chats.map(x=>`<div class="card"><b>${esc(x.role)}</b>: ${esc(x.text)}</div>`).join("")}
+    <h2>Tasks</h2>${tasks.map(x=>`<div class="card"><b>${esc(x.status)}</b>: ${esc(x.text)}</div>`).join("")}
+    <h2>Beliefs</h2>${beliefs.map(x=>`<div class="card"><b>${esc(x.id)}</b>: ${esc(x.text)}<br>${esc(x.verdict||"")}</div>`).join("")}
+    </body></html>`;
+    download("omniauthor_report_"+Date.now()+".html",html,"text/html");
+  }
+
+  function download(name,content,type){
+    const blob=new Blob([content],{type});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download=name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function completeTask(idv){
+    const tasks=load(TASKS,[]);
+    const t=tasks.find(x=>x.id===idv);
+    if(t){t.status=t.status==="done"?"open":"done";save(TASKS,tasks);render()}
+  }
+
+  function render(){
+    const panel=ensurePanel();
+    const chat=load(CHAT,[]);
+    const tasks=load(TASKS,[]);
+    const media=load(MEDIA,[]);
+    panel.innerHTML=`
+      <div class="miGrid">
+        <label>UPLOAD<input id="miFileInput" type="file" multiple accept="image/*,video/*,audio/*,.txt,.json,.md,.html,.pdf" style="display:none"></label>
+        <button onclick="omniInterfaceV13.listen()">VOICE IN</button>
+        <button onclick="omniInterfaceV13.exportJSON()">EXPORT JSON</button>
+        <button onclick="omniInterfaceV13.exportReport()">REPORT</button>
+      </div>
+
+      <div class="miTitle">CONVERSATION + TASK LOGIC</div>
+      <textarea id="miChatInput" placeholder="Talk to OmniAuthor. Use 'task:' for tasks, or make a full claim for the belief engine."></textarea>
+      <div class="miGrid">
+        <button onclick="omniInterfaceV13.send()">SEND</button>
+        <button onclick="omniInterfaceV13.clearChat()">CLEAR CHAT</button>
+      </div>
+
+      <div class="miTitle">RECENT CONVERSATION</div>
+      ${chat.slice(0,12).map(x=>`<div class="miCard"><span class="miGold">${esc(x.role)}</span> · ${esc(x.meta?.kind||"")}: ${esc(x.text)}</div>`).join("")||`<div class="miCard miDim">No conversation yet.</div>`}
+
+      <div class="miTitle">TASKS</div>
+      ${tasks.slice(0,14).map(t=>`<div class="miCard" onclick="omniInterfaceV13.complete('${t.id}')"><span class="${t.status==="done"?"miDim":"miGold"}">${esc(t.status)}</span> · ${esc(t.text)}<br><span class="miDim">${t.steps.join(" → ")}</span></div>`).join("")||`<div class="miCard miDim">No tasks yet.</div>`}
+
+      <div class="miTitle">MEDIA ARTIFACTS</div>
+      ${media.slice(0,10).map(m=>`<div class="miCard miPreview"><span class="miGold">${esc(m.artifact_type)}</span> · ${esc(m.name)} · ${Math.round((m.size||0)/1024)}kb
+        ${m.artifact_type==="image"?`<img src="${m.data}">`:""}
+        ${m.artifact_type==="video"?`<video src="${m.data}" controls></video>`:""}
+        ${m.artifact_type==="audio"?`<audio src="${m.data}" controls></audio>`:""}
+      </div>`).join("")||`<div class="miCard miDim">No media uploaded.</div>`}
+    `;
+    const input=document.getElementById("miFileInput");
+    if(input&&!input.dataset.bound){input.dataset.bound="1";input.onchange=e=>handleFiles([...e.target.files])}
+  }
+
+  function ensurePanel(){
+    let p=document.getElementById("omniInterfacePanelV13");
+    if(!p){p=document.createElement("div");p.id="omniInterfacePanelV13";document.body.appendChild(p)}
+    return p;
+  }
+
+  function button(){
+    if(document.getElementById("omniInterfaceBtnV13"))return;
+    const b=document.createElement("button");
+    b.id="omniInterfaceBtnV13";
+    b.textContent="INTERFACE";
+    b.onclick=()=>{render();const p=ensurePanel();p.style.display=p.style.display==="block"?"none":"block"};
+    document.body.appendChild(b);
+  }
+
+  window.omniInterfaceV13={
+    version:VERSION,
+    send(){
+      const i=document.getElementById("miChatInput");
+      const text=(i?.value||"").trim();
+      if(!text)return;
+      i.value="";
+      performLogic(text);
+      render();
+    },
+    listen,
+    speak,
+    exportJSON,
+    exportReport,
+    complete:completeTask,
+    clearChat(){save(CHAT,[]);render()},
+    media:()=>load(MEDIA,[]),
+    tasks:()=>load(TASKS,[]),
+    chat:()=>load(CHAT,[])
+  };
+
+  button();
+  setInterval(button,1000);
+  console.log("OMNIAUTHOR_MULTIMODAL_INTERFACE_V13 ready");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
