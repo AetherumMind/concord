@@ -3115,6 +3115,212 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+
+<script id="OMNIAUTHOR_MATH_GOVERNANCE_CORE_V12">
+(() => {
+  const BELIEFS="omniauthor-belief-ledger-v1";
+  const GOV="omniauthor-math-governance-v12";
+  const AGENTS="omniauthor-agent-runtime-v11";
+
+  const ACTIONS={
+    PROMOTE:"PROMOTE",
+    WATCH:"WATCH",
+    CHALLENGE:"CHALLENGE",
+    QUARANTINE:"QUARANTINE",
+    MERGE:"MERGE",
+    MUTATE:"MUTATE",
+    ARCHIVE:"ARCHIVE"
+  };
+
+  const P={
+    decayLambda:0.131,
+    reinforcementRate:0.18,
+    contradictionWeight:0.27,
+    lineageWeight:0.22,
+    evidenceWeight:0.31,
+    symbolicWeight:0.08,
+    noveltyWeight:0.07,
+    promote:1.18,
+    challenge:0.86,
+    quarantine:0.62,
+    archive:0.46
+  };
+
+  function load(k,d){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}}
+  function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+  function now(){return new Date().toISOString()}
+  function id(p){return p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
+  function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+  function ageDays(iso){const t=iso?new Date(iso).getTime():Date.now();return Number.isFinite(t)?Math.max(0,(Date.now()-t)/86400000):0}
+  function words(t){return String(t||"").toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>3)}
+
+  function atbash(s){
+    return String(s||"").toLowerCase().replace(/[a-z]/g,c=>String.fromCharCode(122-(c.charCodeAt(0)-97)));
+  }
+
+  function gematriaLite(s){
+    return String(s||"").toLowerCase().replace(/[^a-z]/g,"").split("")
+      .reduce((n,c)=>n+(c.charCodeAt(0)-96),0);
+  }
+
+  function symbolicScore(a,b){
+    const ga=gematriaLite(a), gb=gematriaLite(b);
+    const diff=Math.abs(ga-gb);
+    const gem=diff===0?1:diff<7?.6:diff<22?.3:0;
+    const inv=words(atbash(a)).filter(w=>String(b||"").toLowerCase().includes(w)).length;
+    return clamp(gem+(inv*.2),0,1);
+  }
+
+  function lineagePenalty(b,list){
+    const parents=b.derived_from||[];
+    if(!parents.length)return 0;
+    const unique=new Set(parents).size;
+    return parents.length?1-(unique/parents.length):0;
+  }
+
+  function scoreBelief(b,list){
+    const decay=Math.exp(-P.decayLambda*ageDays(b.created_at));
+    const evidence=(b.evidence||[]).length*P.evidenceWeight;
+    const lineage=((b.supports||[]).length+(b.related||[]).length)*P.lineageWeight;
+    const contradiction=(b.contradicts||[]).length*P.contradictionWeight;
+    const novelty=clamp(words(b.text).length/18,0,1)*P.noveltyWeight;
+    const reinforcement=(b.confidence||.5)*P.reinforcementRate;
+    const duplicatePenalty=lineagePenalty(b,list)*.25;
+
+    let symbolic=0;
+    list.slice(0,40).forEach(x=>{
+      if(x.id!==b.id) symbolic=Math.max(symbolic,symbolicScore(b.text,x.text));
+    });
+    symbolic*=P.symbolicWeight;
+
+    const raw=decay+evidence+lineage+novelty+reinforcement+symbolic-contradiction-duplicatePenalty;
+
+    return {
+      total:+clamp(raw,0,1.618).toFixed(4),
+      decay:+decay.toFixed(4),
+      evidence:+evidence.toFixed(4),
+      lineage:+lineage.toFixed(4),
+      contradiction:+contradiction.toFixed(4),
+      novelty:+novelty.toFixed(4),
+      reinforcement:+reinforcement.toFixed(4),
+      symbolic:+symbolic.toFixed(4),
+      duplicate_penalty:+duplicatePenalty.toFixed(4)
+    };
+  }
+
+  function decide(b,score){
+    if((b.contradicts||[]).length>=4 && score.total<P.challenge)return ACTIONS.QUARANTINE;
+    if(score.total>=P.promote)return ACTIONS.PROMOTE;
+    if(score.total<P.archive)return ACTIONS.ARCHIVE;
+    if(score.total<P.quarantine)return ACTIONS.QUARANTINE;
+    if(score.total<P.challenge)return ACTIONS.CHALLENGE;
+    if((b.related||[]).length>=6)return ACTIONS.MERGE;
+    if(score.novelty>.055 && score.symbolic>.03)return ACTIONS.MUTATE;
+    return ACTIONS.WATCH;
+  }
+
+  function applyAction(b,action,score){
+    b.math_governance={
+      version:"v12",
+      last_reviewed:now(),
+      score,
+      action,
+      parameters:P
+    };
+
+    b.status={
+      PROMOTE:"promoted",
+      WATCH:"watch",
+      CHALLENGE:"challenged",
+      QUARANTINE:"quarantined",
+      MERGE:"merge-candidate",
+      MUTATE:"mutation-candidate",
+      ARCHIVE:"archived"
+    }[action]||b.status;
+
+    b.governance_rationale=[
+      `total=${score.total}`,
+      `evidence=${score.evidence}`,
+      `lineage=${score.lineage}`,
+      `contradiction=${score.contradiction}`,
+      `symbolic=${score.symbolic}`,
+      `action=${action}`
+    ].join(" · ");
+
+    return b;
+  }
+
+  function review(){
+    const list=load(BELIEFS,[]);
+    const report=[];
+    list.forEach(b=>{
+      const score=scoreBelief(b,list);
+      const action=decide(b,score);
+      applyAction(b,action,score);
+      report.push({id:b.id,text:b.text,score:score.total,action,status:b.status});
+    });
+    save(BELIEFS,list);
+    save(GOV,{version:"v12",updated_at:now(),report});
+    if(window.concordGenesis?.apply) window.concordGenesis.apply();
+    render(report);
+    return report;
+  }
+
+  function render(report){
+    let panel=document.getElementById("mathGovPanelV12");
+    if(!panel){
+      panel=document.createElement("div");
+      panel.id="mathGovPanelV12";
+      panel.style.cssText="position:fixed;left:10px;right:10px;bottom:82px;z-index:999999;max-height:62vh;overflow:auto;display:none;background:rgba(2,4,14,.97);color:#e8e4d9;border:1px solid rgba(255,217,143,.48);border-radius:18px;padding:14px;font-family:monospace;font-size:11px;box-shadow:0 0 55px rgba(255,217,143,.14);backdrop-filter:blur(14px)";
+      document.body.appendChild(panel);
+    }
+
+    const r=report||load(GOV,{report:[]}).report||[];
+    const counts=r.reduce((m,x)=>{m[x.action]=(m[x.action]||0)+1;return m},{});
+
+    panel.innerHTML=`
+      <div style="color:#ffd98f;letter-spacing:.22em;margin-bottom:8px">MATH GOVERNANCE CORE</div>
+      <div style="border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0">
+        PROMOTE ${counts.PROMOTE||0} · WATCH ${counts.WATCH||0} · CHALLENGE ${counts.CHALLENGE||0} · QUARANTINE ${counts.QUARANTINE||0} · ARCHIVE ${counts.ARCHIVE||0}
+      </div>
+      ${r.slice(0,18).map(x=>`
+        <div style="border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0">
+          <div style="color:${x.action==="PROMOTE"?"#00e5cc":x.action==="QUARANTINE"||x.action==="ARCHIVE"?"#ff6b35":"#ffd98f"}">${x.action} · score ${x.score} · ${x.id}</div>
+          <div>${String(x.text||"").replace(/[<>&]/g,"")}</div>
+        </div>
+      `).join("")}
+    `;
+  }
+
+  function button(){
+    if(document.getElementById("mathGovBtnV12"))return;
+    const b=document.createElement("button");
+    b.id="mathGovBtnV12";
+    b.textContent="MATH GOV";
+    b.style.cssText="position:fixed;right:16px;top:294px;z-index:999999;background:rgba(18,10,34,.92);color:#ffd98f;border:1px solid rgba(255,217,143,.5);border-radius:12px;padding:10px 12px;font-family:monospace;font-size:9px;letter-spacing:.14em;backdrop-filter:blur(12px)";
+    b.onclick=()=>{const r=review();const p=document.getElementById('mathGovPanelV12');p.style.display=p.style.display==='block'?'none':'block'};
+    document.body.appendChild(b);
+  }
+
+  window.omniMathGovV12={
+    version:"v12",
+    review,
+    score:scoreBelief,
+    atbash,
+    gematria:gematriaLite,
+    symbolicScore,
+    parameters:P,
+    report(){return load(GOV,{report:[]})}
+  };
+
+  button();
+  setInterval(button,1000);
+  setInterval(review,120000);
+  review();
+  console.log("OMNIAUTHOR_MATH_GOVERNANCE_CORE_V12 ready");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
