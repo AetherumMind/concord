@@ -2312,6 +2312,115 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+
+<script id="CONCORD_INPUT_GATEKEEPER_V7">
+(() => {
+  const BELIEFS="omniauthor-belief-ledger-v1";
+  const REJECTS="concord-rejected-inputs-v1";
+
+  function load(k,d=[]){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}}
+  function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+  function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+  function isWeakInput(t){
+    const s=String(t||"").trim();
+    if(!s) return "empty";
+    if(/^https?:\/\//i.test(s)) return "url";
+    if(/chrome menu|reload|settings|site settings|clear data/i.test(s)) return "browser instruction";
+    if(/^[a-zA-Z0-9_]+\.(start|stop|evolve|status|ledger|dream|synth|predict|challenge)\(\)$/i.test(s)) return "javascript command";
+    if(/^(show me|open|go to|click|press|copy|paste|run|fix|make|build)\b/i.test(s) && s.split(/\s+/).length < 7) return "request fragment";
+    if(s.split(/\s+/).length < 4 && !/[.!?]/.test(s)) return "too short";
+    if(!/[a-z]/i.test(s)) return "not language";
+    return null;
+  }
+
+  function classify(t){
+    const s=String(t||"").trim();
+    const weak=isWeakInput(s);
+    if(weak) return {kind:"request_or_command", reason:weak};
+
+    const proposition=/\b(is|are|becomes|causes|requires|means|should|will|can|cannot|does|must|creates|produces|leads|supports|contradicts)\b/i.test(s);
+    if(!proposition) return {kind:"needs_clarification", reason:"not a clear proposition"};
+
+    return {kind:"belief", reason:"clear proposition"};
+  }
+
+  function reject(text,info){
+    const r=load(REJECTS,[]);
+    r.unshift({text,info,created_at:new Date().toISOString()});
+    save(REJECTS,r.slice(0,200));
+
+    const cap=document.querySelector(".a");
+    if(cap){
+      cap.innerHTML =
+        `Input held from ledger.<br>`+
+        `<span style="font-size:12px;color:#aab6d4">Reason: ${esc(info.reason)} · This looks like a request, command, or fragment — not a belief.</span>`;
+    }
+
+    let p=document.getElementById("gatekeeperPanelV7");
+    if(!p){
+      p=document.createElement("div");
+      p.id="gatekeeperPanelV7";
+      p.className="concordPanel";
+      document.body.appendChild(p);
+    }
+    p.innerHTML =
+      `<div class="concordTitle">INPUT GATEKEEPER</div>`+
+      `<div class="concordCard"><div class="concordWarn">Rejected from belief ledger</div><div>${esc(text)}</div><div class="concordDim">${esc(info.reason)}</div></div>`+
+      `<div class="concordCard"><div class="concordGood">Use a claim instead</div><div>Example: “A system becomes more reliable when it preserves dissent.”</div></div>`;
+    p.style.display="block";
+  }
+
+  function cleanOldBadBeliefs(){
+    const b=load(BELIEFS,[]);
+    const kept=[];
+    const removed=[];
+    for(const x of b){
+      const info=classify(x.text||"");
+      if(info.kind==="belief" || x.origin==="system" || x.origin==="prediction" || x.origin==="dream" || x.origin==="synthesis") kept.push(x);
+      else removed.push(x);
+    }
+    if(removed.length){
+      save(BELIEFS,kept);
+      const r=load(REJECTS,[]);
+      save(REJECTS,removed.map(x=>({text:x.text,info:{reason:"cleaned existing weak belief"},created_at:new Date().toISOString()})).concat(r).slice(0,200));
+      console.log("Gatekeeper cleaned weak beliefs:", removed.length);
+    }
+  }
+
+  function hook(){
+    const btn=[...document.querySelectorAll("button")].find(b=>/^DELIBERATE$/i.test((b.textContent||"").trim()));
+    const input=document.querySelector("input,textarea");
+    if(btn&&input&&!btn.dataset.gatekeeperV7){
+      btn.dataset.gatekeeperV7="1";
+      btn.addEventListener("click",(e)=>{
+        const text=(input.value||"").trim();
+        const info=classify(text);
+        if(info.kind!=="belief"){
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          input.value="";
+          reject(text,info);
+          return false;
+        }
+      },true);
+    }
+  }
+
+  window.concordGatekeeper={
+    classify,
+    clean:cleanOldBadBeliefs,
+    rejected(){return load(REJECTS,[])},
+    beliefs(){return load(BELIEFS,[])}
+  };
+
+  cleanOldBadBeliefs();
+  setInterval(hook,700);
+  hook();
+  console.log("CONCORD_INPUT_GATEKEEPER_V7 ready");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
