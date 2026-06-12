@@ -1196,6 +1196,60 @@ document.getElementById("taskRun").onclick=async()=>{
 };
 </script>
 
+
+<script id="CONCORD_V11_LEDGER_PATCH">
+(() => {
+  const KEY = "omniauthor-belief-ledger-v1";
+
+  function loadLedger(){
+    try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
+    catch { return []; }
+  }
+
+  function saveLedger(items){
+    localStorage.setItem(KEY, JSON.stringify(items));
+  }
+
+  function makeBelief(text){
+    return {
+      id: "belief_" + Date.now().toString(36),
+      text,
+      created_at: new Date().toISOString(),
+      confidence: 0.67,
+      council: {
+        affirm: 3,
+        dissent: 1,
+        preserve: 2,
+        lead: "Architect"
+      },
+      verdict: "The Council holds this likely true.",
+      source: "local"
+    };
+  }
+
+  window.omniLedger = {
+    all: loadLedger,
+    add(text){
+      const items = loadLedger();
+      const belief = makeBelief(text);
+      items.unshift(belief);
+      saveLedger(items);
+      return belief;
+    },
+    clear(){
+      saveLedger([]);
+    }
+  };
+
+  const oldAlert = window.alert;
+  window.alert = function(msg){
+    oldAlert(msg);
+  };
+
+  console.log("CONCORD_V11_LEDGER_PATCH active", loadLedger().length);
+})();
+</script>
+
 </body></html>
 
 CTRL + D
