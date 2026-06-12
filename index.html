@@ -1773,6 +1773,190 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+
+<script id="CONCORD_OMEGA_CORE_V4">
+(() => {
+  const KEY="omniauthor-belief-ledger-v1";
+  const RUN="concord-omega-run";
+  const AGENTS=[
+    "Architect","Skeptic","Scientist","Historian","Auditor","Strategist",
+    "Cartographer","Dreamer","Judge","Witness","Engineer","Oracle"
+  ];
+
+  function load(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return[]}}
+  function save(x){localStorage.setItem(KEY,JSON.stringify(x.slice(0,1000)))}
+  function id(p){return p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
+  function pick(a){return a[Math.floor(Math.random()*a.length)]}
+  function esc(x){return String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+  function words(t){return String(t).toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>4)}
+
+  function relation(a,b){
+    const aw=words(a), bt=String(b||"").toLowerCase();
+    return aw.filter(w=>bt.includes(w)).length;
+  }
+
+  function council(text){
+    const out={};
+    for(const a of AGENTS){
+      out[a]=`${a} reviews, challenges, connects, and preserves: "${text}"`;
+    }
+    return out;
+  }
+
+  function make(text,origin="omega",parents=[]){
+    const items=load();
+    const related=items.map(x=>({id:x.id,score:relation(text,x.text)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,9).map(x=>x.id);
+    const neg=/not|never|false|wrong|fail|contradict|unstable|deny|risk/i.test(text);
+    const contradicts=items.filter(x=>relation(text,x.text)>0 && neg!==/not|never|false|wrong|fail|contradict|unstable|deny|risk/i.test(x.text||"")).slice(0,6).map(x=>x.id);
+    const gen=parents.length?1+Math.max(0,...items.filter(x=>parents.includes(x.id)).map(x=>x.generation||0)):0;
+
+    const node={
+      id:id(origin==="human"?"human":"omega"),
+      text,
+      created_at:new Date().toISOString(),
+      origin,
+      generation:gen,
+      status:contradicts.length?"contested":"active",
+      confidence:+(0.50+Math.random()*0.40-(contradicts.length*.035)).toFixed(4),
+      integrity:+(0.62+Math.random()*0.32+(related.length*.004)).toFixed(4),
+      council:council(text),
+      tally:{
+        affirm:Math.floor(4+Math.random()*5),
+        dissent:contradicts.length,
+        preserve:Math.floor(1+Math.random()*4)
+      },
+      derived_from:parents,
+      related,
+      supports:related.slice(0,4),
+      contradicts,
+      predictions:[],
+      questions:[
+        `What would disprove: ${text}`,
+        `What evidence would strengthen: ${text}`,
+        `What hidden assumption supports: ${text}`
+      ],
+      verdict:"Omega Council preserved this belief for continued evolution."
+    };
+
+    items.unshift(node);
+    save(items);
+    render(node);
+    return node;
+  }
+
+  function synth(){
+    const l=load();
+    if(l.length<2)return make("A self-growing council begins by remembering, relating, and revising its own beliefs.","omega-seed",[]);
+    const a=pick(l),b=pick(l);
+    return make(`Higher-order synthesis of "${a.text}" and "${b.text}".`,"synthesis",[a.id,b.id]);
+  }
+
+  function contradict(){
+    const l=load();
+    if(!l.length)return synth();
+    const a=pick(l);
+    return make(`Challenge this belief until only its strongest structure remains: "${a.text}".`,"contradiction",[a.id]);
+  }
+
+  function predict(){
+    const l=load();
+    if(!l.length)return synth();
+    const a=pick(l);
+    return make(`Prediction derived from "${a.text}": if true, future observations should reveal a repeatable pattern.`,"prediction",[a.id]);
+  }
+
+  function evolve(){
+    return pick([synth,contradict,predict,dream])();
+  }
+
+  function dream(){
+    return make(pick([
+      "What unknown relationship is hiding between the strongest beliefs?",
+      "Which belief deserves to die so the system becomes more honest?",
+      "What pattern would a future intelligence notice first?",
+      "What must be remembered even if confidence collapses?",
+      "Where is the contradiction that becomes a doorway?"
+    ]),"dream",load().slice(0,3).map(x=>x.id));
+  }
+
+  function render(b){
+    const cap=document.querySelector(".a");
+    if(cap)cap.innerHTML=`${esc(b.text)}<br><span style="font-size:12px;color:#aab6d4">${esc(b.verdict)} · gen ${b.generation} · integrity ${b.integrity}</span>`;
+    const mode=document.querySelector("#modeTag");
+    if(mode)mode.textContent="omega: evolving";
+    panel();
+  }
+
+  function panel(){
+    let el=document.getElementById("omegaPanel");
+    if(!el){
+      el=document.createElement("div");
+      el.id="omegaPanel";
+      el.style.cssText="position:fixed;left:10px;right:10px;bottom:84px;max-height:44vh;overflow:auto;display:none;z-index:999999;background:rgba(2,4,14,.94);border:1px solid rgba(232,185,106,.45);border-radius:18px;padding:14px;color:#e8e4d9;font-family:monospace;font-size:11px;box-shadow:0 0 44px rgba(0,229,204,.16)";
+      document.body.appendChild(el);
+    }
+    const l=load().slice(0,30);
+    el.innerHTML=`<div style="color:#e8b96a;letter-spacing:.26em;margin-bottom:10px">OMEGA LEDGER · ${l.length} VISIBLE</div>`+
+      l.map(x=>`<div style="border-bottom:1px solid rgba(255,255,255,.08);padding:9px 0">
+        <div style="color:${(x.contradicts||[]).length?'#ff6b35':'#00e5cc'}">${esc(x.id)} · ${esc(x.origin)} · gen ${x.generation||0}</div>
+        <div>${esc(x.text||"")}</div>
+        <div style="color:#aab6d4">${esc(x.verdict||"")}</div>
+        <div style="color:#5e6a8e">related ${(x.related||[]).length} · supports ${(x.supports||[]).length} · contradicts ${(x.contradicts||[]).length}</div>
+      </div>`).join("");
+  }
+
+  function controls(){
+    if(document.getElementById("omegaControls"))return;
+    const box=document.createElement("div");
+    box.id="omegaControls";
+    box.style.cssText="position:fixed;left:12px;top:110px;z-index:999999;display:flex;flex-direction:column;gap:6px";
+    const btn=(t,f)=>{let b=document.createElement("button");b.textContent=t;b.style.cssText="background:rgba(6,10,26,.78);color:#e8b96a;border:1px solid rgba(232,185,106,.38);border-radius:10px;padding:8px 10px;font-family:monospace;font-size:9px;letter-spacing:.14em";b.onclick=f;return b};
+    box.appendChild(btn("OMEGA",()=>evolve()));
+    box.appendChild(btn("SYNTH",()=>synth()));
+    box.appendChild(btn("DREAM",()=>dream()));
+    box.appendChild(btn("PREDICT",()=>predict()));
+    box.appendChild(btn("CHALLENGE",()=>contradict()));
+    box.appendChild(btn("LEDGER",()=>{panel();let p=document.getElementById("omegaPanel");p.style.display=p.style.display==="none"?"block":"none"}));
+    box.appendChild(btn("AUTO",()=>{localStorage.setItem(RUN,"1");render(make("Omega autonomous growth enabled.","system",[]))}));
+    box.appendChild(btn("STOP",()=>{localStorage.setItem(RUN,"0");render(make("Omega autonomous growth paused.","system",[]))}));
+    document.body.appendChild(box);
+  }
+
+  function hook(){
+    controls();
+    const btn=[...document.querySelectorAll("button")].find(b=>/deliberate/i.test(b.textContent||""));
+    const input=document.querySelector("input,textarea");
+    if(btn&&input&&!btn.dataset.omega){
+      btn.dataset.omega="1";
+      btn.addEventListener("click",()=>{
+        const t=(input.value||"").trim();
+        if(!t)return;
+        input.value="";
+        make(t,"human",[]);
+      },true);
+    }
+  }
+
+  window.concordOmega={
+    create:make,
+    synth,
+    dream,
+    predict,
+    challenge:contradict,
+    evolve,
+    ledger:load,
+    start(){localStorage.setItem(RUN,"1")},
+    stop(){localStorage.setItem(RUN,"0")},
+    status(){return{enabled:localStorage.getItem(RUN)==="1",ledger_size:load().length}}
+  };
+
+  setInterval(hook,1000);
+  setInterval(()=>{if(localStorage.getItem(RUN)==="1")evolve()},60000);
+  hook();
+  console.log("CONCORD_OMEGA_CORE_V4 ready");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
