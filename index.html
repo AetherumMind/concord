@@ -1192,7 +1192,7 @@ document.getElementById("taskRun").onclick=async()=>{
     const r=await fetch("/api/task",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind,text})});
     const j=await r.json();
     out.textContent=j.output;
-  }catch(e){out.textContent="Task failed: "+e;}
+  }catch(e){out.textContent="Task engine requires backend API. Static demo mode active.";}
 };
 </script>
 
