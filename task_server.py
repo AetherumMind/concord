@@ -2,11 +2,11 @@ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 import json, sqlite3, subprocess, time, os, zipfile
 
-ROOT=Path.home()/"concord"
+ROOT=Path.home()/"omniauthor"
 WS=ROOT/"workspace"
 LEDGER=ROOT/"ledger"
 AGENTS=ROOT/"agents"
-DB=ROOT/"concord_tasks.db"
+DB=ROOT/"omniauthor_tasks.db"
 for p in [WS,LEDGER,AGENTS,ROOT/"uploads",ROOT/"app",ROOT/"icons"]: p.mkdir(exist_ok=True)
 
 DEFAULT={
@@ -79,12 +79,12 @@ def task(kind,text):
         c=sqlite3.connect(DB); rows=c.execute("SELECT id,ts,kind,input,output FROM ledger ORDER BY id DESC LIMIT 30").fetchall(); c.close()
         out="\n\n".join(f"#{i} {time.ctime(ts)} [{k}]\nIN: {inp[:120]}\nOUT: {o[:600]}" for i,ts,k,inp,o in rows) or "Ledger empty."
     elif kind=="export":
-        z=ROOT/"concord_export.zip"
+        z=ROOT/"omniauthor_export.zip"
         with zipfile.ZipFile(z,"w",zipfile.ZIP_DEFLATED) as zp:
             for base in [WS,LEDGER,AGENTS]:
                 for p in base.rglob("*"):
                     if p.is_file(): zp.write(p,p.relative_to(ROOT))
-            for n in ["concord_app.html","task_server.py","concord_tasks.db"]:
+            for n in ["omniauthor_app.html","task_server.py","omniauthor_tasks.db"]:
                 p=ROOT/n
                 if p.exists(): zp.write(p,n)
         out=str(z)
@@ -110,5 +110,5 @@ class H(SimpleHTTPRequestHandler):
 
 if __name__=="__main__":
     os.chdir(ROOT); init()
-    print("CONCORD APP RUNNING: http://localhost:8080/concord_app.html")
+    print("OMNIAUTHOR APP RUNNING: http://localhost:8080/omniauthor_app.html")
     ThreadingHTTPServer(("127.0.0.1",8080),H).serve_forever()

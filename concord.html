@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>CONCORD — A Living Map of Thought</title>
+<title>OMNIAUTHOR — A Living Map of Thought</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%2341d8ff' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23ffb340'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -80,10 +80,10 @@ body.entered #veil{opacity:0}
 </head>
 <body>
 <canvas id="c"></canvas>
-<noscript><div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#aab6d4;font-family:serif;font-style:italic">Concord needs JavaScript enabled.</div></noscript>
+<noscript><div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#aab6d4;font-family:serif;font-style:italic">OmniAuthor needs JavaScript enabled.</div></noscript>
 
 <div id="wordmark" class="ov fade">
-  <div class="t">Concord</div>
+  <div class="t">OmniAuthor</div>
   <div class="s">What humanity currently knows</div>
 </div>
 
@@ -139,7 +139,7 @@ body.entered #veil{opacity:0}
 
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
-   CONCORD — FINAL PROTOTYPE ENGINE + RENDER
+   OMNIAUTHOR — FINAL PROTOTYPE ENGINE + RENDER
    Fixes implemented:
    1. Real council reasoning via Anthropic API (keyless in artifacts,
       key-prompt fallback for Termux/browser), local engine as offline fallback
@@ -342,7 +342,7 @@ function localDeliberate(proposition, existing) {
 /* ── REAL COUNCIL — Anthropic API ── */
 async function apiDeliberate(proposition, existing, apiKey) {
   const existingList = existing.map((b, i) => `${i}: ${b.label}`).join("\n") || "(none)";
-  const prompt = `You are the Concord Council: six reasoning perspectives deliberating a proposition. Members: architect (systems/structure), skeptic (doubt/failure modes), scientist (empirical evidence), historian (precedent), auditor (consistency/rules), strategist (pragmatics).
+  const prompt = `You are the OmniAuthor Council: six reasoning perspectives deliberating a proposition. Members: architect (systems/structure), skeptic (doubt/failure modes), scientist (empirical evidence), historian (precedent), auditor (consistency/rules), strategist (pragmatics).
 
 PROPOSITION: "${proposition}"
 
@@ -989,8 +989,8 @@ async function pose() {
   };
 
   S.beliefs.push(belief);
-  await store.set("concord-beliefs", JSON.stringify(S.beliefs));
-  await store.set("concord-lastvisit", String(Date.now()));
+  await store.set("omniauthor-beliefs", JSON.stringify(S.beliefs));
+  await store.set("omniauthor-lastvisit", String(Date.now()));
 
   S.flare = 1;
   if (contradictIds.length) {
@@ -1091,7 +1091,7 @@ $("epoch").addEventListener("input", e => {
 $("seedsBtn").addEventListener("click", async () => {
   S.seedsOn = !S.seedsOn;
   $("seedsBtn").textContent = S.seedsOn ? "Hide exemplars" : "Show exemplars";
-  await store.set("concord-seeds", S.seedsOn ? "1" : "0");
+  await store.set("omniauthor-seeds", S.seedsOn ? "1" : "0");
   setStatusLine();
   if (allBeliefs().length) show("firstRun", false);
   else show("firstRun", true);
@@ -1100,7 +1100,7 @@ $("keyBtn").addEventListener("click", async () => {
   const k = prompt("Anthropic API key (stored locally, never sent anywhere but api.anthropic.com):", "");
   if (k && k.trim()) {
     S.apiKey = k.trim();
-    await store.set("concord-key", S.apiKey);
+    await store.set("omniauthor-key", S.apiKey);
     setStatusLine();
   }
 });
@@ -1108,16 +1108,16 @@ $("keyBtn").addEventListener("click", async () => {
 /* ── BOOT ── */
 (async function boot() {
   try {
-    const raw = await store.get("concord-beliefs");
+    const raw = await store.get("omniauthor-beliefs");
     if (raw) S.beliefs = JSON.parse(raw) || [];
   } catch(e) {}
   try {
-    const sd = await store.get("concord-seeds");
+    const sd = await store.get("omniauthor-seeds");
     S.seedsOn = sd === "1";
     $("seedsBtn").textContent = S.seedsOn ? "Hide exemplars" : "Show exemplars";
   } catch(e) {}
   try {
-    const k = await store.get("concord-key");
+    const k = await store.get("omniauthor-key");
     if (k) S.apiKey = k;
   } catch(e) {}
 
@@ -1135,7 +1135,7 @@ $("keyBtn").addEventListener("click", async () => {
 
   // weather while away (fix #4)
   try {
-    const lv = await store.get("concord-lastvisit");
+    const lv = await store.get("omniauthor-lastvisit");
     if (lv) {
       const daysAway = (Date.now() - parseInt(lv, 10)) / 86400000;
       const note = applyWeather(daysAway);
@@ -1144,11 +1144,11 @@ $("keyBtn").addEventListener("click", async () => {
         $("weatherText").textContent = note;
         show("weatherWrap", true);
         setTimeout(() => show("weatherWrap", false), 9000);
-        await store.set("concord-beliefs", JSON.stringify(S.beliefs));
+        await store.set("omniauthor-beliefs", JSON.stringify(S.beliefs));
       }
     }
   } catch(e) {}
-  await store.set("concord-lastvisit", String(Date.now()));
+  await store.set("omniauthor-lastvisit", String(Date.now()));
 
   // first-run (fix #5)
   show("firstRun", allBeliefs().length === 0);
@@ -1166,7 +1166,7 @@ $("keyBtn").addEventListener("click", async () => {
 </style>
 <button class="pill" id="taskBtn">Tasks</button>
 <div id="taskPanel">
-  <div style="letter-spacing:.22em;text-transform:uppercase;color:#e8b96a;font-size:11px">Concord Task Engine</div>
+  <div style="letter-spacing:.22em;text-transform:uppercase;color:#e8b96a;font-size:11px">OmniAuthor Task Engine</div>
   <select id="taskKind">
     <option value="plan">Plan task</option>
     <option value="status">Project status</option>
@@ -1176,7 +1176,7 @@ $("keyBtn").addEventListener("click", async () => {
     <option value="make_todo">Make todo list</option>
     <option value="read_notes">Read notes</option>
   </select>
-  <textarea id="taskText" rows="5" placeholder="Tell Concord what to do..."></textarea>
+  <textarea id="taskText" rows="5" placeholder="Tell OmniAuthor what to do..."></textarea>
   <button id="taskRun">Run Task</button>
   <div id="taskOut"></div>
 </div>
