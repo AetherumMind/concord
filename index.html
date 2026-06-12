@@ -2129,6 +2129,189 @@ document.getElementById("taskRun").onclick=async()=>{
 })();
 </script>
 
+
+<script id="CONCORD_PRIME_CORE_V6">
+(() => {
+  const BELIEFS="omniauthor-belief-ledger-v1";
+  const AGENTS_KEY="concord-agent-memory-v1";
+  const QUESTIONS_KEY="concord-open-questions-v1";
+  const RUN="concord-prime-auto";
+
+  const AGENTS=["Architect","Skeptic","Scientist","Historian","Auditor","Strategist","Cartographer","Dreamer","Judge"];
+
+  function load(k,d=[]){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}}
+  function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+  function beliefs(){return load(BELIEFS,[])}
+  function saveBeliefs(v){save(BELIEFS,v.slice(0,1500))}
+  function id(p){return p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,7)}
+  function pick(a){return a[Math.floor(Math.random()*a.length)]}
+  function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+  function initAgents(){
+    let mem=load(AGENTS_KEY,{});
+    AGENTS.forEach(a=>{
+      if(!mem[a]) mem[a]={trust:.7,wins:0,losses:0,predictions:0,questions:0,bias:a,history:[]};
+    });
+    save(AGENTS_KEY,mem);
+    return mem;
+  }
+
+  function agentSpeak(agent,text){
+    const style={
+      Architect:"Build the structure before admiring the vision.",
+      Skeptic:"A belief that cannot survive attack is decoration.",
+      Scientist:"Evidence is the tax every claim must pay.",
+      Historian:"Patterns rarely introduce themselves as new.",
+      Auditor:"If provenance is missing, confidence is theater.",
+      Strategist:"A useful belief must change the next move.",
+      Cartographer:"A lonely belief is an unmapped island.",
+      Dreamer:"The impossible is often an undiscovered category.",
+      Judge:"Preserve the dissent; decide provisionally."
+    };
+    return `${style[agent]} Applied to: "${text}"`;
+  }
+
+  function relate(text,items){
+    const w=String(text).toLowerCase().split(/[^a-z0-9]+/).filter(x=>x.length>4);
+    return items.map(b=>{
+      const bt=String(b.text||"").toLowerCase();
+      return {id:b.id,score:w.filter(x=>bt.includes(x)).length};
+    }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,10).map(x=>x.id);
+  }
+
+  function createBelief(text,origin="prime",parents=[]){
+    const items=beliefs();
+    const mem=initAgents();
+    const related=relate(text,items);
+    const contradicts=items.filter(b=>related.includes(b.id)&&/not|false|wrong|fail|deny|risk|contradict/i.test(text)!==/not|false|wrong|fail|deny|risk|contradict/i.test(b.text||"")).slice(0,6).map(b=>b.id);
+    const council={};
+
+    AGENTS.forEach(a=>{
+      council[a]=agentSpeak(a,text);
+      mem[a].history.unshift({at:new Date().toISOString(),belief:text.slice(0,120)});
+      mem[a].history=mem[a].history.slice(0,20);
+      mem[a].trust=+(mem[a].trust + (Math.random()-.45)*.015).toFixed(3);
+      mem[a].trust=Math.max(.35,Math.min(.98,mem[a].trust));
+    });
+
+    const node={
+      id:id(origin==="human"?"human":"prime"),
+      text,
+      origin,
+      created_at:new Date().toISOString(),
+      generation:parents.length?1:0,
+      status:contradicts.length?"contested":"active",
+      confidence:+(.54+Math.random()*.36-contradicts.length*.03).toFixed(4),
+      integrity:+(.64+Math.random()*.30+related.length*.004).toFixed(4),
+      council,
+      agent_memory_snapshot:Object.fromEntries(AGENTS.map(a=>[a,mem[a].trust])),
+      derived_from:parents,
+      related,
+      supports:related.slice(0,4),
+      contradicts,
+      predictions:[
+        {id:id("pred"),text:`If true, this belief should produce consistent downstream support.`,status:"open"}
+      ],
+      questions:[
+        "What evidence would change this belief?",
+        "What contradiction applies pressure here?",
+        "What useful action follows from this?"
+      ],
+      verdict:contradicts.length?"Prime Council preserved under contradiction watch.":"Prime Council accepted into working memory."
+    };
+
+    items.unshift(node);
+    saveBeliefs(items);
+    save(AGENTS_KEY,mem);
+    renderPrime(node);
+    return node;
+  }
+
+  function question(){
+    const q=[
+      "Which belief in the ledger is most fragile?",
+      "Which accepted belief lacks evidence?",
+      "Which contradiction should become a first-class object?",
+      "What does the system repeatedly assume without testing?",
+      "Which agent has too much influence?",
+      "What prediction can be made from the strongest belief?"
+    ];
+    const qs=load(QUESTIONS_KEY,[]);
+    const obj={id:id("q"),text:pick(q),created_at:new Date().toISOString(),status:"open"};
+    qs.unshift(obj); save(QUESTIONS_KEY,qs.slice(0,200));
+    return createBelief(`Open Question: ${obj.text}`,"curiosity",[]);
+  }
+
+  function selfAudit(){
+    const mem=initAgents();
+    const weakest=Object.entries(mem).sort((a,b)=>a[1].trust-b[1].trust)[0];
+    return createBelief(`Self-audit: ${weakest[0]} currently has the lowest trust and should be challenged for calibration.`,"self-audit",[]);
+  }
+
+  function prediction(){
+    const l=beliefs();
+    if(!l.length) return createBelief("Prediction seed: reliable systems should improve when contradiction is preserved.","prediction",[]);
+    const b=pick(l);
+    return createBelief(`Prediction Market: If "${b.text}" is true, future related claims should increase its support score.`,"prediction",[b.id]);
+  }
+
+  function evolve(){
+    return pick([question,selfAudit,prediction,()=>createBelief("Dream hypothesis: a knowledge system becomes alive when it can doubt itself without deleting itself.","dream",[])])();
+  }
+
+  function panel(){
+    let p=document.getElementById("primePanel");
+    if(!p){
+      p=document.createElement("div");
+      p.id="primePanel";
+      p.className="concordPanel";
+      document.body.appendChild(p);
+    }
+    const mem=initAgents();
+    const qs=load(QUESTIONS_KEY,[]);
+    const l=beliefs();
+    p.innerHTML=`<div class="concordTitle">PRIME CORE</div>
+      <div class="concordCard"><div class="concordGood">System</div>
+      <div>beliefs ${l.length} · questions ${qs.length} · agents ${AGENTS.length} · auto ${localStorage.getItem(RUN)==="1"?"on":"off"}</div></div>
+      <div class="concordTitle">AGENT MEMORY</div>
+      ${AGENTS.map(a=>`<div class="concordCard"><div class="concordGood">${a}</div><div>trust ${mem[a].trust} · wins ${mem[a].wins} · losses ${mem[a].losses} · bias ${esc(mem[a].bias)}</div></div>`).join("")}
+      <div class="concordTitle">OPEN QUESTIONS</div>
+      ${qs.slice(0,10).map(q=>`<div class="concordCard"><div>${esc(q.text)}</div><div class="concordDim">${q.status}</div></div>`).join("")}`;
+  }
+
+  function renderPrime(b){
+    const cap=document.querySelector(".a");
+    if(cap) cap.innerHTML=`${esc(b.text)}<br><span style="font-size:12px;color:#aab6d4">${esc(b.verdict)} · integrity ${b.integrity}</span>`;
+    const mode=document.querySelector("#modeTag");
+    if(mode) mode.textContent=localStorage.getItem(RUN)==="1"?"prime: autonomous":"prime: ready";
+    panel();
+  }
+
+  function dock(){
+    if(!document.getElementById("primeBtn")){
+      const d=document.getElementById("concordDock")||document.body.appendChild(document.createElement("div"));
+      d.id="concordDock";
+      const buttons=[
+        ["PRIME",()=>{panel();let p=document.getElementById("primePanel");p.style.display=p.style.display==="none"?"block":"none"}],
+        ["QUESTION",question],
+        ["AUDIT",selfAudit],
+        ["MARKET",prediction],
+        ["AUTO+",()=>{localStorage.setItem(RUN,"1");renderPrime(createBelief("Prime autonomous cognition enabled.","system",[]))}],
+        ["AUTO-",()=>{localStorage.setItem(RUN,"0");renderPrime(createBelief("Prime autonomous cognition paused.","system",[]))}]
+      ];
+      buttons.forEach(([t,f])=>{const b=document.createElement("button");b.id=t==="PRIME"?"primeBtn":"";b.textContent=t;b.onclick=f;d.appendChild(b)});
+    }
+  }
+
+  window.concordPrime={create:createBelief,question,selfAudit,prediction,evolve,start(){localStorage.setItem(RUN,"1")},stop(){localStorage.setItem(RUN,"0")},agents:initAgents,questions(){return load(QUESTIONS_KEY,[])},ledger:beliefs,status(){return{auto:localStorage.getItem(RUN)==="1",beliefs:beliefs().length,questions:load(QUESTIONS_KEY,[]).length}}};
+
+  setInterval(dock,1000);
+  setInterval(()=>{if(localStorage.getItem(RUN)==="1")evolve()},90000);
+  dock(); initAgents();
+  console.log("CONCORD_PRIME_CORE_V6 ready");
+})();
+</script>
+
 </body></html>
 
 CTRL + D
