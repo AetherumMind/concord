@@ -3503,7 +3503,301 @@ document.getElementById("taskRun").onclick=async()=>{
     <h2>Conversation</h2>${chats.map(x=>`<div class="card"><b>${esc(x.role)}</b>: ${esc(x.text)}</div>`).join("")}
     <h2>Tasks</h2>${tasks.map(x=>`<div class="card"><b>${esc(x.status)}</b>: ${esc(x.text)}</div>`).join("")}
     <h2>Beliefs</h2>${beliefs.map(x=>`<div class="card"><b>${esc(x.id)}</b>: ${esc(x.text)}<br>${esc(x.verdict||"")}</div>`).join("")}
-    </body></html>`;
+    
+<style id="OMNIAUTHOR_MASS_INGESTION_ENGINE_V14_STYLE">
+#ingestBtnV14{
+  position:fixed;right:16px;top:394px;z-index:999999;
+  background:rgba(4,20,18,.94);color:#9fffe8;
+  border:1px solid rgba(159,255,232,.5);border-radius:12px;
+  padding:10px 12px;font-family:monospace;font-size:9px;
+  letter-spacing:.14em;backdrop-filter:blur(12px)
+}
+#ingestPanelV14{
+  position:fixed;left:10px;right:10px;bottom:82px;z-index:999999;
+  max-height:66vh;overflow:auto;display:none;
+  background:rgba(2,4,14,.97);color:#e8e4d9;
+  border:1px solid rgba(159,255,232,.48);border-radius:18px;
+  padding:14px;font-family:monospace;font-size:11px;
+  box-shadow:0 0 55px rgba(159,255,232,.14);backdrop-filter:blur(14px)
+}
+.ingTitle{color:#9fffe8;letter-spacing:.22em;margin:12px 0 8px}
+.ingCard{border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0}
+.ingGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.ingGrid button,.ingGrid label{
+  background:rgba(8,12,28,.9);color:#9fffe8;
+  border:1px solid rgba(159,255,232,.38);border-radius:12px;
+  padding:10px 6px;font-family:monospace;font-size:9px;letter-spacing:.12em;text-align:center
+}
+#ingestTextV14{
+  width:100%;min-height:160px;background:rgba(8,12,28,.9);color:#e8e4d9;
+  border:1px solid rgba(159,255,232,.35);border-radius:12px;
+  padding:10px;font-family:monospace;font-size:12px;margin:8px 0
+}
+.ingGood{color:#00e5cc}.ingWarn{color:#ff6b35}.ingDim{color:#8b96b8}.ingGold{color:#ffd98f}
+</style>
+
+<script id="OMNIAUTHOR_MASS_INGESTION_ENGINE_V14">
+(() => {
+  const VERSION="v14";
+  const BELIEFS="omniauthor-belief-ledger-v1";
+  const ARTIFACTS="upfis-artifacts-v10";
+  const INGEST="omniauthor-ingestion-memory-v14";
+  const GRAPH="omniauthor-ingestion-graph-v14";
+
+  function load(k,d=[]){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}}
+  function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+  function id(p){return p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
+  function now(){return new Date().toISOString()}
+  function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+  function words(t){return String(t||"").toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>4)}
+  function unique(a){return [...new Set(a)]}
+
+  function chunkText(text,size=1200,overlap=160){
+    const clean=String(text||"").replace(/\r/g,"").replace(/[ \t]+/g," ").trim();
+    const chunks=[];
+    let i=0;
+    while(i<clean.length){
+      chunks.push(clean.slice(i,i+size));
+      i+=size-overlap;
+      if(chunks.length>500)break;
+    }
+    return chunks.filter(x=>x.trim().length>40);
+  }
+
+  function summarize(chunk){
+    const sentences=chunk.split(/(?<=[.!?])\s+/).filter(Boolean);
+    return sentences.slice(0,3).join(" ").slice(0,650) || chunk.slice(0,650);
+  }
+
+  function extractClaims(chunk){
+    const sents=chunk.split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean);
+    return sents.filter(s =>
+      s.length>35 &&
+      /\b(is|are|was|were|becomes|causes|requires|means|should|will|can|cannot|must|creates|supports|contradicts|preserves|improves|reduces|increases)\b/i.test(s)
+    ).slice(0,6);
+  }
+
+  function keywords(text){
+    const stop=new Set("about after again against also because before being between could every from have into more most other over some than that their them then there these they this those through under very were what when where which while would your with without".split(" "));
+    return unique(words(text).filter(w=>!stop.has(w))).slice(0,24);
+  }
+
+  function relation(a,b){
+    const aw=keywords(a), bt=String(b||"").toLowerCase();
+    return aw.filter(w=>bt.includes(w)).length;
+  }
+
+  function addArtifact(text,source="mass-ingestion",kind="chunk"){
+    if(window.upfisV10?.addArtifact) return window.upfisV10.addArtifact(text,source,kind);
+    const list=load(ARTIFACTS,[]);
+    const a={id:id("artifact"),text,source,kind,created_at:now(),tags:keywords(text),confidence:.6};
+    list.unshift(a); save(ARTIFACTS,list.slice(0,2000)); return a;
+  }
+
+  function addBelief(text,origin="mass-ingestion",parents=[]){
+    if(window.omniCoreV11?.create) return window.omniCoreV11.create(text,origin,parents);
+    if(window.concordV8?.make) return window.concordV8.make(text,origin,parents);
+    const list=load(BELIEFS,[]);
+    const b={id:id("belief"),text,origin,created_at:now(),derived_from:parents,related:[],supports:[],contradicts:[],confidence:.62,integrity:.7,status:"ingested"};
+    list.unshift(b); save(BELIEFS,list.slice(0,2000)); return b;
+  }
+
+  function buildGraph(ingestId,chunks,claims){
+    const graph=load(GRAPH,{nodes:[],edges:[]});
+    const docNode={id:ingestId,type:"document",label:ingestId,created_at:now()};
+    graph.nodes.unshift(docNode);
+
+    chunks.forEach(c=>{
+      graph.nodes.unshift({id:c.id,type:"chunk",label:c.summary.slice(0,80),keywords:c.keywords,created_at:now()});
+      graph.edges.unshift({id:id("edge"),from:ingestId,to:c.id,type:"contains",weight:1});
+    });
+
+    claims.forEach(cl=>{
+      graph.nodes.unshift({id:cl.id,type:"claim",label:cl.text.slice(0,100),keywords:keywords(cl.text),created_at:now()});
+      graph.edges.unshift({id:id("edge"),from:cl.chunk_id,to:cl.id,type:"yields_claim",weight:.8});
+    });
+
+    for(let i=0;i<claims.length;i++){
+      for(let j=i+1;j<claims.length;j++){
+        const r=relation(claims[i].text,claims[j].text);
+        if(r>0) graph.edges.unshift({id:id("edge"),from:claims[i].id,to:claims[j].id,type:"relates",weight:Math.min(1,r/8)});
+      }
+    }
+
+    graph.nodes=graph.nodes.slice(0,2500);
+    graph.edges=graph.edges.slice(0,5000);
+    save(GRAPH,graph);
+    return graph;
+  }
+
+  function ingestText(text,name="manual-ingest"){
+    const ingestId=id("ingest");
+    const chunks=chunkText(text);
+    const memory=load(INGEST,[]);
+    const chunkRecords=[];
+    const claimRecords=[];
+
+    chunks.forEach((chunk,idx)=>{
+      const summary=summarize(chunk);
+      const artifact=addArtifact(summary,`ingest:${name}`,"text-chunk");
+      const rec={id:artifact.id,ingest_id:ingestId,index:idx,summary,keywords:keywords(chunk),size:chunk.length};
+      chunkRecords.push(rec);
+
+      extractClaims(chunk).forEach(claim=>{
+        const b=addBelief(claim,"ingested-claim",[artifact.id]);
+        if(b){
+          b.evidence=b.evidence||[];
+          if(!b.evidence.includes(artifact.id))b.evidence.push(artifact.id);
+          claimRecords.push({id:b.id,chunk_id:artifact.id,text:claim});
+        }
+      });
+    });
+
+    const record={
+      id:ingestId,
+      name,
+      created_at:now(),
+      chars:String(text||"").length,
+      chunks:chunkRecords.length,
+      claims:claimRecords.length,
+      keywords:keywords(text).slice(0,40),
+      summary:summarize(text)
+    };
+
+    memory.unshift(record);
+    save(INGEST,memory.slice(0,200));
+    buildGraph(ingestId,chunkRecords,claimRecords);
+
+    if(window.upfisV10?.link) window.upfisV10.link();
+    if(window.concordGenesis?.apply) window.concordGenesis.apply();
+    if(window.omniMathGovV12?.review) window.omniMathGovV12.review();
+    if(window.omniCoreV11?.rebuild) window.omniCoreV11.rebuild();
+
+    render();
+    return record;
+  }
+
+  async function ingestFiles(files){
+    for(const f of files){
+      const text=await readAsText(f);
+      ingestText(text,f.name);
+    }
+  }
+
+  function readAsText(file){
+    return new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(String(r.result||""));
+      r.onerror=rej;
+      r.readAsText(file);
+    });
+  }
+
+  function render(){
+    const p=ensurePanel();
+    const memory=load(INGEST,[]);
+    const graph=load(GRAPH,{nodes:[],edges:[]});
+    p.innerHTML=`
+      <div class="ingGrid">
+        <label>UPLOAD TEXT<input id="ingestFileInputV14" type="file" multiple accept=".txt,.md,.json,.html,.csv,.log" style="display:none"></label>
+        <button onclick="omniIngestV14.ingestBox()">DIGEST TEXT</button>
+        <button onclick="omniIngestV14.reprocess()">REPROCESS</button>
+        <button onclick="omniIngestV14.export()">EXPORT MEMORY</button>
+      </div>
+
+      <div class="ingTitle">MASS INGESTION ENGINE</div>
+      <textarea id="ingestTextV14" placeholder="Paste massive information here. OmniAuthor will chunk it, summarize it, extract claims, create evidence artifacts, connect beliefs, and route through Genesis / UPFIS / Math Governance."></textarea>
+
+      <div class="ingCard">
+        <span class="ingGood">ingests ${memory.length}</span>
+        · graph nodes ${graph.nodes.length}
+        · graph edges ${graph.edges.length}
+        · beliefs ${(JSON.parse(localStorage.getItem("omniauthor-belief-ledger-v1")||"[]")).length}
+      </div>
+
+      <div class="ingTitle">RECENT DIGESTS</div>
+      ${memory.slice(0,12).map(m=>`<div class="ingCard">
+        <div class="ingGold">${esc(m.name)} · ${esc(m.id)}</div>
+        <div>${esc(m.summary)}</div>
+        <div class="ingDim">chars ${m.chars} · chunks ${m.chunks} · claims ${m.claims}</div>
+      </div>`).join("")||`<div class="ingCard ingDim">No ingests yet.</div>`}
+
+      <div class="ingTitle">COMPREHENSION GRAPH</div>
+      ${graph.nodes.slice(0,12).map(n=>`<div class="ingCard">
+        <div class="ingGood">${esc(n.type)} · ${esc(n.id)}</div>
+        <div>${esc(n.label||"")}</div>
+      </div>`).join("")||`<div class="ingCard ingDim">Graph empty.</div>`}
+    `;
+
+    const input=document.getElementById("ingestFileInputV14");
+    if(input&&!input.dataset.bound){
+      input.dataset.bound="1";
+      input.onchange=e=>ingestFiles([...e.target.files]);
+    }
+  }
+
+  function ensurePanel(){
+    let p=document.getElementById("ingestPanelV14");
+    if(!p){p=document.createElement("div");p.id="ingestPanelV14";document.body.appendChild(p)}
+    return p;
+  }
+
+  function button(){
+    if(document.getElementById("ingestBtnV14"))return;
+    const b=document.createElement("button");
+    b.id="ingestBtnV14";
+    b.textContent="INGEST";
+    b.onclick=()=>{render();const p=ensurePanel();p.style.display=p.style.display==="block"?"none":"block"};
+    document.body.appendChild(b);
+  }
+
+  function exportMemory(){
+    const payload={
+      version:VERSION,
+      exported_at:now(),
+      ingests:load(INGEST,[]),
+      graph:load(GRAPH,{nodes:[],edges:[]}),
+      beliefs:load(BELIEFS,[]),
+      artifacts:load(ARTIFACTS,[])
+    };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="omniauthor_ingestion_memory_"+Date.now()+".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  window.omniIngestV14={
+    version:VERSION,
+    ingest:ingestText,
+    ingestBox(){
+      const box=document.getElementById("ingestTextV14");
+      const text=(box?.value||"").trim();
+      if(!text)return;
+      box.value="";
+      return ingestText(text,"paste-"+new Date().toISOString());
+    },
+    files:ingestFiles,
+    memory(){return load(INGEST,[])},
+    graph(){return load(GRAPH,{nodes:[],edges:[]})},
+    reprocess(){
+      if(window.upfisV10?.link) window.upfisV10.link();
+      if(window.concordGenesis?.apply) window.concordGenesis.apply();
+      if(window.omniMathGovV12?.review) window.omniMathGovV12.review();
+      if(window.omniCoreV11?.rebuild) window.omniCoreV11.rebuild();
+      render();
+    },
+    export:exportMemory
+  };
+
+  button();
+  setInterval(button,1000);
+  console.log("OMNIAUTHOR_MASS_INGESTION_ENGINE_V14 ready");
+})();
+</script>
+
+</body></html>`;
     download("omniauthor_report_"+Date.now()+".html",html,"text/html");
   }
 
@@ -3598,6 +3892,300 @@ document.getElementById("taskRun").onclick=async()=>{
   button();
   setInterval(button,1000);
   console.log("OMNIAUTHOR_MULTIMODAL_INTERFACE_V13 ready");
+})();
+</script>
+
+
+<style id="OMNIAUTHOR_MASS_INGESTION_ENGINE_V14_STYLE">
+#ingestBtnV14{
+  position:fixed;right:16px;top:394px;z-index:999999;
+  background:rgba(4,20,18,.94);color:#9fffe8;
+  border:1px solid rgba(159,255,232,.5);border-radius:12px;
+  padding:10px 12px;font-family:monospace;font-size:9px;
+  letter-spacing:.14em;backdrop-filter:blur(12px)
+}
+#ingestPanelV14{
+  position:fixed;left:10px;right:10px;bottom:82px;z-index:999999;
+  max-height:66vh;overflow:auto;display:none;
+  background:rgba(2,4,14,.97);color:#e8e4d9;
+  border:1px solid rgba(159,255,232,.48);border-radius:18px;
+  padding:14px;font-family:monospace;font-size:11px;
+  box-shadow:0 0 55px rgba(159,255,232,.14);backdrop-filter:blur(14px)
+}
+.ingTitle{color:#9fffe8;letter-spacing:.22em;margin:12px 0 8px}
+.ingCard{border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0}
+.ingGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.ingGrid button,.ingGrid label{
+  background:rgba(8,12,28,.9);color:#9fffe8;
+  border:1px solid rgba(159,255,232,.38);border-radius:12px;
+  padding:10px 6px;font-family:monospace;font-size:9px;letter-spacing:.12em;text-align:center
+}
+#ingestTextV14{
+  width:100%;min-height:160px;background:rgba(8,12,28,.9);color:#e8e4d9;
+  border:1px solid rgba(159,255,232,.35);border-radius:12px;
+  padding:10px;font-family:monospace;font-size:12px;margin:8px 0
+}
+.ingGood{color:#00e5cc}.ingWarn{color:#ff6b35}.ingDim{color:#8b96b8}.ingGold{color:#ffd98f}
+</style>
+
+<script id="OMNIAUTHOR_MASS_INGESTION_ENGINE_V14">
+(() => {
+  const VERSION="v14";
+  const BELIEFS="omniauthor-belief-ledger-v1";
+  const ARTIFACTS="upfis-artifacts-v10";
+  const INGEST="omniauthor-ingestion-memory-v14";
+  const GRAPH="omniauthor-ingestion-graph-v14";
+
+  function load(k,d=[]){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}}
+  function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+  function id(p){return p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
+  function now(){return new Date().toISOString()}
+  function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+  function words(t){return String(t||"").toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>4)}
+  function unique(a){return [...new Set(a)]}
+
+  function chunkText(text,size=1200,overlap=160){
+    const clean=String(text||"").replace(/\r/g,"").replace(/[ \t]+/g," ").trim();
+    const chunks=[];
+    let i=0;
+    while(i<clean.length){
+      chunks.push(clean.slice(i,i+size));
+      i+=size-overlap;
+      if(chunks.length>500)break;
+    }
+    return chunks.filter(x=>x.trim().length>40);
+  }
+
+  function summarize(chunk){
+    const sentences=chunk.split(/(?<=[.!?])\s+/).filter(Boolean);
+    return sentences.slice(0,3).join(" ").slice(0,650) || chunk.slice(0,650);
+  }
+
+  function extractClaims(chunk){
+    const sents=chunk.split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean);
+    return sents.filter(s =>
+      s.length>35 &&
+      /\b(is|are|was|were|becomes|causes|requires|means|should|will|can|cannot|must|creates|supports|contradicts|preserves|improves|reduces|increases)\b/i.test(s)
+    ).slice(0,6);
+  }
+
+  function keywords(text){
+    const stop=new Set("about after again against also because before being between could every from have into more most other over some than that their them then there these they this those through under very were what when where which while would your with without".split(" "));
+    return unique(words(text).filter(w=>!stop.has(w))).slice(0,24);
+  }
+
+  function relation(a,b){
+    const aw=keywords(a), bt=String(b||"").toLowerCase();
+    return aw.filter(w=>bt.includes(w)).length;
+  }
+
+  function addArtifact(text,source="mass-ingestion",kind="chunk"){
+    if(window.upfisV10?.addArtifact) return window.upfisV10.addArtifact(text,source,kind);
+    const list=load(ARTIFACTS,[]);
+    const a={id:id("artifact"),text,source,kind,created_at:now(),tags:keywords(text),confidence:.6};
+    list.unshift(a); save(ARTIFACTS,list.slice(0,2000)); return a;
+  }
+
+  function addBelief(text,origin="mass-ingestion",parents=[]){
+    if(window.omniCoreV11?.create) return window.omniCoreV11.create(text,origin,parents);
+    if(window.concordV8?.make) return window.concordV8.make(text,origin,parents);
+    const list=load(BELIEFS,[]);
+    const b={id:id("belief"),text,origin,created_at:now(),derived_from:parents,related:[],supports:[],contradicts:[],confidence:.62,integrity:.7,status:"ingested"};
+    list.unshift(b); save(BELIEFS,list.slice(0,2000)); return b;
+  }
+
+  function buildGraph(ingestId,chunks,claims){
+    const graph=load(GRAPH,{nodes:[],edges:[]});
+    const docNode={id:ingestId,type:"document",label:ingestId,created_at:now()};
+    graph.nodes.unshift(docNode);
+
+    chunks.forEach(c=>{
+      graph.nodes.unshift({id:c.id,type:"chunk",label:c.summary.slice(0,80),keywords:c.keywords,created_at:now()});
+      graph.edges.unshift({id:id("edge"),from:ingestId,to:c.id,type:"contains",weight:1});
+    });
+
+    claims.forEach(cl=>{
+      graph.nodes.unshift({id:cl.id,type:"claim",label:cl.text.slice(0,100),keywords:keywords(cl.text),created_at:now()});
+      graph.edges.unshift({id:id("edge"),from:cl.chunk_id,to:cl.id,type:"yields_claim",weight:.8});
+    });
+
+    for(let i=0;i<claims.length;i++){
+      for(let j=i+1;j<claims.length;j++){
+        const r=relation(claims[i].text,claims[j].text);
+        if(r>0) graph.edges.unshift({id:id("edge"),from:claims[i].id,to:claims[j].id,type:"relates",weight:Math.min(1,r/8)});
+      }
+    }
+
+    graph.nodes=graph.nodes.slice(0,2500);
+    graph.edges=graph.edges.slice(0,5000);
+    save(GRAPH,graph);
+    return graph;
+  }
+
+  function ingestText(text,name="manual-ingest"){
+    const ingestId=id("ingest");
+    const chunks=chunkText(text);
+    const memory=load(INGEST,[]);
+    const chunkRecords=[];
+    const claimRecords=[];
+
+    chunks.forEach((chunk,idx)=>{
+      const summary=summarize(chunk);
+      const artifact=addArtifact(summary,`ingest:${name}`,"text-chunk");
+      const rec={id:artifact.id,ingest_id:ingestId,index:idx,summary,keywords:keywords(chunk),size:chunk.length};
+      chunkRecords.push(rec);
+
+      extractClaims(chunk).forEach(claim=>{
+        const b=addBelief(claim,"ingested-claim",[artifact.id]);
+        if(b){
+          b.evidence=b.evidence||[];
+          if(!b.evidence.includes(artifact.id))b.evidence.push(artifact.id);
+          claimRecords.push({id:b.id,chunk_id:artifact.id,text:claim});
+        }
+      });
+    });
+
+    const record={
+      id:ingestId,
+      name,
+      created_at:now(),
+      chars:String(text||"").length,
+      chunks:chunkRecords.length,
+      claims:claimRecords.length,
+      keywords:keywords(text).slice(0,40),
+      summary:summarize(text)
+    };
+
+    memory.unshift(record);
+    save(INGEST,memory.slice(0,200));
+    buildGraph(ingestId,chunkRecords,claimRecords);
+
+    if(window.upfisV10?.link) window.upfisV10.link();
+    if(window.concordGenesis?.apply) window.concordGenesis.apply();
+    if(window.omniMathGovV12?.review) window.omniMathGovV12.review();
+    if(window.omniCoreV11?.rebuild) window.omniCoreV11.rebuild();
+
+    render();
+    return record;
+  }
+
+  async function ingestFiles(files){
+    for(const f of files){
+      const text=await readAsText(f);
+      ingestText(text,f.name);
+    }
+  }
+
+  function readAsText(file){
+    return new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(String(r.result||""));
+      r.onerror=rej;
+      r.readAsText(file);
+    });
+  }
+
+  function render(){
+    const p=ensurePanel();
+    const memory=load(INGEST,[]);
+    const graph=load(GRAPH,{nodes:[],edges:[]});
+    p.innerHTML=`
+      <div class="ingGrid">
+        <label>UPLOAD TEXT<input id="ingestFileInputV14" type="file" multiple accept=".txt,.md,.json,.html,.csv,.log" style="display:none"></label>
+        <button onclick="omniIngestV14.ingestBox()">DIGEST TEXT</button>
+        <button onclick="omniIngestV14.reprocess()">REPROCESS</button>
+        <button onclick="omniIngestV14.export()">EXPORT MEMORY</button>
+      </div>
+
+      <div class="ingTitle">MASS INGESTION ENGINE</div>
+      <textarea id="ingestTextV14" placeholder="Paste massive information here. OmniAuthor will chunk it, summarize it, extract claims, create evidence artifacts, connect beliefs, and route through Genesis / UPFIS / Math Governance."></textarea>
+
+      <div class="ingCard">
+        <span class="ingGood">ingests ${memory.length}</span>
+        · graph nodes ${graph.nodes.length}
+        · graph edges ${graph.edges.length}
+        · beliefs ${(JSON.parse(localStorage.getItem("omniauthor-belief-ledger-v1")||"[]")).length}
+      </div>
+
+      <div class="ingTitle">RECENT DIGESTS</div>
+      ${memory.slice(0,12).map(m=>`<div class="ingCard">
+        <div class="ingGold">${esc(m.name)} · ${esc(m.id)}</div>
+        <div>${esc(m.summary)}</div>
+        <div class="ingDim">chars ${m.chars} · chunks ${m.chunks} · claims ${m.claims}</div>
+      </div>`).join("")||`<div class="ingCard ingDim">No ingests yet.</div>`}
+
+      <div class="ingTitle">COMPREHENSION GRAPH</div>
+      ${graph.nodes.slice(0,12).map(n=>`<div class="ingCard">
+        <div class="ingGood">${esc(n.type)} · ${esc(n.id)}</div>
+        <div>${esc(n.label||"")}</div>
+      </div>`).join("")||`<div class="ingCard ingDim">Graph empty.</div>`}
+    `;
+
+    const input=document.getElementById("ingestFileInputV14");
+    if(input&&!input.dataset.bound){
+      input.dataset.bound="1";
+      input.onchange=e=>ingestFiles([...e.target.files]);
+    }
+  }
+
+  function ensurePanel(){
+    let p=document.getElementById("ingestPanelV14");
+    if(!p){p=document.createElement("div");p.id="ingestPanelV14";document.body.appendChild(p)}
+    return p;
+  }
+
+  function button(){
+    if(document.getElementById("ingestBtnV14"))return;
+    const b=document.createElement("button");
+    b.id="ingestBtnV14";
+    b.textContent="INGEST";
+    b.onclick=()=>{render();const p=ensurePanel();p.style.display=p.style.display==="block"?"none":"block"};
+    document.body.appendChild(b);
+  }
+
+  function exportMemory(){
+    const payload={
+      version:VERSION,
+      exported_at:now(),
+      ingests:load(INGEST,[]),
+      graph:load(GRAPH,{nodes:[],edges:[]}),
+      beliefs:load(BELIEFS,[]),
+      artifacts:load(ARTIFACTS,[])
+    };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="omniauthor_ingestion_memory_"+Date.now()+".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  window.omniIngestV14={
+    version:VERSION,
+    ingest:ingestText,
+    ingestBox(){
+      const box=document.getElementById("ingestTextV14");
+      const text=(box?.value||"").trim();
+      if(!text)return;
+      box.value="";
+      return ingestText(text,"paste-"+new Date().toISOString());
+    },
+    files:ingestFiles,
+    memory(){return load(INGEST,[])},
+    graph(){return load(GRAPH,{nodes:[],edges:[]})},
+    reprocess(){
+      if(window.upfisV10?.link) window.upfisV10.link();
+      if(window.concordGenesis?.apply) window.concordGenesis.apply();
+      if(window.omniMathGovV12?.review) window.omniMathGovV12.review();
+      if(window.omniCoreV11?.rebuild) window.omniCoreV11.rebuild();
+      render();
+    },
+    export:exportMemory
+  };
+
+  button();
+  setInterval(button,1000);
+  console.log("OMNIAUTHOR_MASS_INGESTION_ENGINE_V14 ready");
 })();
 </script>
 
